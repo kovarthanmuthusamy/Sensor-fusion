@@ -1,0 +1,9 @@
+version: 1
+project: Sensor_Fusion
+
+# Structure contract for this project; see "Architecture spec" in CLAUDE.md.
+# Open the diagram:  python -m archspec view
+# Check against code: python -m archspec check
+scripts: []
+
+edges: []
