@@ -9,7 +9,7 @@ Timebox: 2026-10-17 → ~2026-10-31. Tick items as PRs merge.
 - [ ] nuScenes account + trainval metadata + keyframe download (CAM_FRONT, LIDAR_TOP)
 
 ## Build
-- [ ] Day 1: repo skeleton: git, pyproject (uv), ruff, pytest, CI, configs, README stub
+- [x] Day 1: repo skeleton: git, pyproject, Hydra configs, ruff/pre-commit, mypy, pytest+coverage, CI, README (PR #1)
 - [ ] Day 2–3: data: LiDAR→camera projection, sparse depth map, 2D labels, scene split, day/night tag
 - [ ] Day 4–5: RGB-only baseline + training loop + W&B
 - [ ] Day 6–7: RGB+depth fusion model + distance head
