@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "outputStyle": "Explanatory",
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python:*)",
+      "Bash(.venv/Scripts/python.exe:*)",
+      "Bash(.venv/Scripts/ruff:*)",
+      "Bash(.venv/Scripts/wandb:*)",
+      "Bash(.venv/Scripts/pip list:*)",
+      "Bash(.venv/Scripts/pip show:*)",
+      "Bash(.venv/Scripts/pip freeze:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(nvidia-smi:*)",
+      "Read(dataset/**)"
+    ],
+    "ask": [
+      "Bash(.venv/Scripts/python -m pip install:*)",
+      "Bash(.venv/Scripts/python.exe -m pip install:*)",
+      "Bash(.venv/Scripts/pip install:*)",
+      "Bash(python -m pip install:*)",
+      "Bash(pip install:*)",
+      "Bash(rm:*)"
+    ],
+    "deny": [
+      "Edit(dataset/**)",
+      "Write(dataset/**)",
+      "Bash(rm -rf dataset:*)",
+      "Bash(git push:*)",
+      "Bash(git remote:*)",
+      "Bash(gh:*)",
+      "Bash(git reset --hard:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "python .claude/hooks/format_python.py", "timeout": 30 }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "python .claude/hooks/session_status.py", "timeout": 15 }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,15 @@
+Sensor fusion using 2d-Image and 3d-Lidar
+
+- Problem: For Autonomous Vehicles the object detection and the depth calculation is very difficult at Night time, becuase there wont be deterministic illuminatons,clarity and the vehicle also in a moving space.
+
+Solution : SO we are gonna develope a framework for object detection and depth calculation using Deep Neural Networks with the datasets available on the internet or we can use unreal engine scens to generate the datasets.
+
+Steps : -- 
+1. Literature review
+2. Whole frmework framing
+3. Data collection/generation
+4. Data Processing
+5. Model/training formation
+6. Training 
+7. Evaluation
+8. Demonstration
