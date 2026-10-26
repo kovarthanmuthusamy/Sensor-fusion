@@ -1,0 +1,8 @@
+# Entry config for `python -m sensor_fusion.train`.
+# Override from the CLI, e.g. `model=fusion data=trainval seed=7`.
+defaults:
+  - data: mini
+  - model: rgb
+  - _self_
+
+seed: 42

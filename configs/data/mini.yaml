@@ -1,0 +1,6 @@
+# nuScenes v1.0-mini: 10 scenes (3 at night). Development and debugging only.
+name: mini
+version: v1.0-mini
+root: dataset/v1.0-mini  # folder containing v1.0-mini/, samples/, sweeps/, maps/
+camera: CAM_FRONT
+lidar: LIDAR_TOP
