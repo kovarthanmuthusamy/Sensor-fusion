@@ -1,0 +1,12 @@
+# Store text files with LF in the repo, whatever the OS that commits them.
+# (System git here has core.autocrlf=true; this file overrides it per-repo, for everyone.)
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF.
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.pcd binary

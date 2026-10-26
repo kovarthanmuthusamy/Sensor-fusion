@@ -11,6 +11,8 @@ __pycache__/
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
 
 # personal Claude settings (shared config in .claude/settings.json is committed)
 .claude/settings.local.json
