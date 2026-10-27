@@ -26,7 +26,7 @@ ADR 0001 asks for one CNN that outputs 2D boxes and a distance per object, with 
 - The network output grid is 1/4 of the input size (stride 4): 112×200 cells.
 - Depth is shrunk by taking the **nearest valid depth** in each block, never an average (an average across a car's edge invents depths). Depth is then divided by 100 m; `0` still means "no LiDAR return".
 - Augmentation: horizontal mirror only, probability 0.5, training only, applied to photo, depth and boxes together. Identical for baseline and fusion.
-- A peak's width on the target grid scales with the object's size (the CenterNet rule: a slightly misplaced peak must still overlap the true box with IoU ≥ 0.7).
+- A peak's width on the target grid follows the box per axis: σ = 0.54 × size in cells / 6 (the TTFNet rule, checked in the paper; 0.54 is the paper's own value, "not carefully selected"). Wide boxes get wide peaks, tall boxes tall peaks, and a small floor keeps tiny objects visible. I first remembered CenterNet's radius formula, but working out its numbers showed it did not behave as I recalled, so I used a rule I could verify.
 - If two objects share a centre cell, the nearer one wins.
 - The channel recipe comes from `model.in_channels` (3 = RGB, 4 = RGB + depth). It is the only difference between baseline and fusion.
 
@@ -38,5 +38,5 @@ The choices marked *(chosen)*, built as three PRs: A (input preparation, target 
 - \+ Targets and decoder are inverse of each other, so a round trip (encode, then decode) tests both without a trained network.
 - \+ Light and fast enough for shared GPUs, with 8–16 loader workers to cover the 71 ms per frame.
 - − More of our own code to review than with an off-the-shelf detector.
-- − Two objects whose centres fall in the same grid cell can't both be represented (the nearer wins). The round-trip test measures how often this happens.
+- − Two objects whose centres fall in the same grid cell can't both be represented (the nearer wins). Measured on mini: 2 of 993 objects (0.2%) were lost this way; the round-trip test pins that every other object comes back.
 - − At half resolution an object 80 m away is about 15 px tall. The Day 8 evaluation should report accuracy by distance.
