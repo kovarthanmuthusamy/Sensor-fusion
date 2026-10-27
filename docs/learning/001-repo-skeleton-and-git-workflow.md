@@ -23,6 +23,8 @@
 - **Machine-wide defaults hide per-project choices:** the cached GitHub login and the git identity were both picked up from the machine, not from the project. Pin them per repo.
 - **Push the base branch first.** The first branch pushed to an empty repo becomes its default branch. Push `main`, check the default branch in Settings, then push feature branches.
 - **Test a protection rule after creating it.** Try a direct push to `main` and confirm it is rejected. Don't assume the rule landed on the branch you meant.
+- **Read your commit messages before the first push, not only the diff.** Trailers (`Co-Authored-By:`) and the author identity become permanent history. Changing pushed history needs a force push, which branch protection blocks, so clean up before the ruleset exists.
+- **Rewrite history with a safety net.** Make a backup branch first, then prove the rewrite changed only the messages by comparing each commit's tree hash (the snapshot id of its files) before and after.
 - **Put a pure rename in its own commit.** Git then records renames, so `git log --follow` and `git blame` keep each file's history, and a reviewer sees "names changed, content didn't".
 
 ## Errors hit
@@ -33,6 +35,7 @@
 | Tracked-file edits vanished after "undoing" a test commit | `git reset --hard HEAD~1` also discards uncommitted changes | Read the reflog (`git reflog`), then `git fsck --no-reflogs` to find unreferenced blobs and restore them with `git cat-file blob <hash> > file` |
 | `.coverage` appeared as untracked | Not in `.gitignore` | Run `git status --ignored` after the first test run and add generated files |
 | No `main` on GitHub, so no base branch for the PR | `feat/repo-skeleton` was pushed first, and the first branch pushed to an empty repo becomes the default | `git ls-remote --heads origin` lists the branches GitHub has. Then `git push -u origin main` and switch the default branch in Settings → General |
+| Claude listed as a co-author on GitHub | Every agent-made commit ended with a `Co-Authored-By:` trailer, which GitHub reads as a co-author | Search the messages with `git log --format=%B` for `co-authored-by` before the first push. Fix: `git rebase <base> --exec <script>` to strip the line, then `git push --force-with-lease` |
 
 ## Quiz
 **Q1 (credential stores):** What is the security risk of GCM keeping logins machine-wide?
