@@ -10,7 +10,7 @@ Timebox: 2026-10-17 → ~2026-10-31. Tick items as PRs merge.
 
 ## Build
 - [x] Day 1: repo skeleton: git, pyproject, Hydra configs, ruff/pre-commit, mypy, pytest+coverage, CI, README (PR #2)
-- [ ] Day 2: PR `feat/lidar-projection`: LiDAR→camera projection + sparse depth map, tested against the devkit ([ADR 0004](adr/0004-data-pipeline-choices.md))
+- [x] Day 2: PR `feat/lidar-projection`: LiDAR→camera projection + sparse depth map, tested against the devkit ([ADR 0004](adr/0004-data-pipeline-choices.md))
 - [ ] Day 3: PR `feat/nuscenes-dataset`: scene split + day/night tag, 3D→2D labels with distance, Dataset class, overlay picture
 - [ ] Day 4–5: RGB-only baseline + training loop + W&B
 - [ ] Day 6–7: RGB+depth fusion model + distance head
