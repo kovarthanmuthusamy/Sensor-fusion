@@ -1,6 +1,6 @@
 # 001 — Repo skeleton and the branch → PR workflow
 
-**PR:** #1 `feat/repo-skeleton` · **Date:** 2026-10-26 · **Tags:** code-craft, mlops, design
+**PR:** #2 `feat/repo-skeleton` · **Date:** 2026-10-26 · **Tags:** code-craft, mlops, design
 
 ## What was built
 - Packaging and tooling: `pyproject.toml`, `requirements.lock.txt` (exact versions), ruff, pre-commit, mypy, pytest + coverage.
