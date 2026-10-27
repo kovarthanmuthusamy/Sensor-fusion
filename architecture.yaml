@@ -21,7 +21,8 @@ scripts:
           took its photo, and where the camera sits on the car. Chains them into a single 4x4
           matrix that carries a point from the LiDAR's view into the camera's view. The two car
           positions differ because the two sensors fire at slightly different moments, and
-          ignoring that shifts points sideways whenever the car is moving.
+          ignoring that moves points in the photo and changes their depth whenever the car is
+          moving.
         signature: "build_lidar_to_camera(lidar_calib: dict, lidar_pose: dict, cam_pose: dict, cam_calib: dict) -> np.ndarray"
       - id: project_to_image
         kind: function
