@@ -1,0 +1,3 @@
+# RGB-only baseline. Identical network to `fusion`; only the input differs.
+name: rgb
+in_channels: 3  # R, G, B

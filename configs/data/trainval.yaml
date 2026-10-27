@@ -1,0 +1,6 @@
+# nuScenes v1.0-trainval, keyframes only. Real training runs.
+name: trainval
+version: v1.0-trainval
+root: dataset/v1.0-trainval  # stored elsewhere? override with data.root=<path>
+camera: CAM_FRONT
+lidar: LIDAR_TOP

@@ -29,7 +29,11 @@ def open_todos(limit: int = 5) -> list[str]:
     progress = ROOT / "docs" / "PROGRESS.md"
     if not progress.exists():
         return []
-    todos = [ln.strip() for ln in progress.read_text(encoding="utf-8").splitlines() if ln.strip().startswith("- [ ]")]
+    todos = [
+        ln.strip()
+        for ln in progress.read_text(encoding="utf-8").splitlines()
+        if ln.strip().startswith("- [ ]")
+    ]
     return todos[:limit]
 
 
