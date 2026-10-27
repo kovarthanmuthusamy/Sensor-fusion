@@ -18,4 +18,8 @@ Timebox: 2026-10-17 → ~2026-10-31. Tick items as PRs merge.
 - [ ] Day 10: README, demo GIF, cleanup
 
 ## Review
-(weak topics from quizzes / mock interviews go here)
+Weak topics from quizzes (feeds `/mock-interview`):
+- Scene-level splits and cross-split leakage: [log 000 Q1](learning/000-environment-setup.md), [log 003 Q14](learning/003-splits-labels-dataset.md). To do on Day 4: the training script checks that train and val scenes do not overlap.
+- Protection rules versus team size (1 approval on a solo repo): [log 001 Q3](learning/001-repo-skeleton-and-git-workflow.md).
+- Duplicates and unspecified order when writing into an array: [log 002 Q12](learning/002-lidar-projection.md).
+- A systematic offset is not a frame bug (it grows with object size): [log 003 Q13](learning/003-splits-labels-dataset.md).
