@@ -4,6 +4,154 @@ project: Sensor_Fusion
 # Structure contract for this project; see "Architecture spec" in CLAUDE.md.
 # Open the diagram:  python -m archspec view
 # Check against code: python -m archspec check
-scripts: []
+#
+# Day 2-3 data layer (ADR 0004). A node stays `planned` until its code exists.
+scripts:
+  - id: projection
+    file: src/sensor_fusion/data/projection.py
+    purpose: Move LiDAR points into the camera photo and draw them as a sparse depth image
+    nodes:
+      - id: build_lidar_to_camera
+        kind: function
+        status: built
+        purpose: Combine the car and sensor positions into one recipe that moves a LiDAR point into the camera's view
+        explain: >-
+          Takes the four position records nuScenes stores for a frame: where the LiDAR sits on
+          the car, where the car was when the LiDAR scanned, where the car was when the camera
+          took its photo, and where the camera sits on the car. Chains them into a single 4x4
+          matrix that carries a point from the LiDAR's view into the camera's view. The two car
+          positions differ because the two sensors fire at slightly different moments, and
+          ignoring that moves points in the photo and changes their depth whenever the car is
+          moving.
+        signature: "build_lidar_to_camera(lidar_calib: dict[str, Any], lidar_pose: dict[str, Any], cam_pose: dict[str, Any], cam_calib: dict[str, Any]) -> np.ndarray"
+        helpers: [_rigid_transform, _invert_rigid, _quaternion_to_rotation]
+      - id: project_to_image
+        kind: function
+        status: built
+        purpose: Find where each LiDAR point lands in the photo and how far along the viewing direction it is
+        explain: >-
+          Takes the LiDAR points (one row per point), the 4x4 matrix and the camera's lens
+          description. Points that are behind or too close to the camera are dropped, the rest
+          are placed on the photo's pixel grid, and points that land outside the photo are
+          dropped too. Out come the pixel position and the depth of every visible point. Depth
+          is the distance along the camera's viewing direction, not the straight-line distance.
+        signature: "project_to_image(points: np.ndarray, T_cam_from_lidar: np.ndarray, intrinsic: np.ndarray, image_size: tuple[int, int], min_depth: float = 1.0) -> tuple[np.ndarray, np.ndarray]"
+      - id: make_sparse_depth
+        kind: function
+        status: built
+        purpose: Draw the LiDAR depths onto an empty image the size of the photo
+        explain: >-
+          Starts from an image of zeros the size of the photo and writes each point's depth at
+          its pixel. When two points land on the same pixel, the nearer one wins, as a real
+          camera would see the nearer surface. Most pixels stay at zero, because one LiDAR scan
+          has far fewer points than the photo has pixels. Out comes an image lined up pixel for
+          pixel with the photo, ready to be used as a fourth channel.
+        signature: "make_sparse_depth(pixels: np.ndarray, depths: np.ndarray, image_size: tuple[int, int]) -> np.ndarray"
 
-edges: []
+  - id: splits
+    file: src/sensor_fusion/data/splits.py
+    purpose: Decide which scenes are for training and validation, and tag each scene as day or night
+    nodes:
+      - id: scene_is_night
+        kind: function
+        status: planned
+        purpose: Tag a scene as day or night
+        explain: >-
+          Reads the one-line description nuScenes gives every scene and calls the scene night
+          if it contains the word night. Every frame of the scene inherits the tag, so day and
+          night results can be reported separately later.
+        signature: "scene_is_night(scene: dict) -> bool"
+      - id: get_split_scenes
+        kind: function
+        status: planned
+        purpose: List the scenes that belong to a split
+        explain: >-
+          Looks up the scene names of the chosen split. The default splits are the official
+          nuScenes lists. A development-only split holds out one whole night scene and one whole
+          day scene, so the day-versus-night evaluation can be tried on the small mini set.
+          Splitting is always by scene and never by frame, because neighbouring frames are
+          near-copies of each other.
+        signature: "get_split_scenes(split: str) -> list[str]"
+
+  - id: labels
+    file: src/sensor_fusion/data/labels.py
+    purpose: Turn nuScenes 3D boxes into flat boxes on the photo, each with a class and a distance
+    nodes:
+      - id: box_to_2d
+        kind: function
+        status: planned
+        purpose: Turn one 3D box into a flat box on the photo plus its distance
+        explain: >-
+          Takes the eight corners of a 3D box in the camera's view, flattens them onto the
+          photo, and wraps the smallest rectangle around them, cut to the photo's edges. Also
+          returns how far the box centre is from the camera along the viewing direction, which
+          becomes the distance the model must learn. Boxes behind the camera or outside the
+          photo are dropped.
+        signature: "box_to_2d(corners_cam: np.ndarray, intrinsic: np.ndarray, image_size: tuple[int, int]) -> tuple[np.ndarray, float] | None"
+      - id: frame_labels
+        kind: function
+        status: planned
+        purpose: Collect the usable flat boxes, classes and distances for one frame
+        explain: >-
+          Goes through every annotated object of the frame, keeps those of the four chosen
+          classes that are at least 40 percent visible, and converts each one to a flat box.
+          Objects are not filtered by how many LiDAR points hit them, so the camera-only
+          baseline and the fusion model are scored on exactly the same objects. Out come one
+          row per kept object: its box, its class and its distance.
+        signature: "frame_labels(nusc: NuScenes, sample: dict, cam_token: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]"
+        helpers: [_to_four_classes]
+
+  - id: dataset
+    file: src/sensor_fusion/data/dataset.py
+    purpose: Serve one aligned training frame at a time
+    nodes:
+      - id: NuScenesFrontDataset
+        kind: class
+        status: planned
+        purpose: Hold the frames of the chosen scenes and hand them out by number
+        explain: >-
+          Opens a nuScenes folder, picks the front-camera frames of the scenes in the chosen
+          split, and answers the question "give me frame number i". It is the only place that
+          knows where files live on disk.
+        signature: "NuScenesFrontDataset(dataroot: str, version: str, split: str)"
+        methods: [__len__]
+      - id: NuScenesFrontDataset.__getitem__
+        kind: method
+        status: planned
+        purpose: Assemble everything the model needs for one frame
+        explain: >-
+          Loads the front-camera photo, builds the sparse depth image from the LiDAR scan of
+          the same moment, collects the labelled boxes and distances, and attaches the day or
+          night tag of the scene. The photo and the depth image line up pixel for pixel, so
+          they can be stacked into a four-channel input later.
+        signature: "__getitem__(self, index: int) -> dict[str, Any]"
+
+edges:
+  - from: projection.build_lidar_to_camera
+    to: projection.project_to_image
+    data: one 4x4 matrix that moves LiDAR points into the camera's view
+    shape: "T (4, 4) float64"
+  - from: projection.project_to_image
+    to: projection.make_sparse_depth
+    data: pixel position and depth of every visible LiDAR point
+    shape: "pixels (M, 2) float32, depths (M,) float32"
+  - from: projection.make_sparse_depth
+    to: dataset.NuScenesFrontDataset.__getitem__
+    data: sparse depth image lined up with the photo
+    shape: "(900, 1600) float32, metres, 0 = no return"
+  - from: labels.box_to_2d
+    to: labels.frame_labels
+    data: flat box and centre distance of one object
+    shape: "box (4,) float32, distance float"
+  - from: labels.frame_labels
+    to: dataset.NuScenesFrontDataset.__getitem__
+    data: flat boxes, classes and distances of the frame
+    shape: "boxes (K, 4) float32, classes (K,) int64, distances (K,) float32"
+  - from: splits.get_split_scenes
+    to: dataset.NuScenesFrontDataset
+    data: names of the scenes in the chosen split
+    shape: "list of scene names"
+  - from: splits.scene_is_night
+    to: dataset.NuScenesFrontDataset.__getitem__
+    data: day or night tag of the frame's scene
+    shape: "bool"
