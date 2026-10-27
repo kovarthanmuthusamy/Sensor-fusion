@@ -5,7 +5,7 @@ project: Sensor_Fusion
 # Open the diagram:  python -m archspec view
 # Check against code: python -m archspec check
 #
-# Day 2-3 data layer (ADR 0004). Everything below is `planned` until the code exists.
+# Day 2-3 data layer (ADR 0004). A node stays `planned` until its code exists.
 scripts:
   - id: projection
     file: src/sensor_fusion/data/projection.py
@@ -13,7 +13,7 @@ scripts:
     nodes:
       - id: build_lidar_to_camera
         kind: function
-        status: planned
+        status: built
         purpose: Combine the car and sensor positions into one recipe that moves a LiDAR point into the camera's view
         explain: >-
           Takes the four position records nuScenes stores for a frame: where the LiDAR sits on
@@ -23,10 +23,11 @@ scripts:
           positions differ because the two sensors fire at slightly different moments, and
           ignoring that moves points in the photo and changes their depth whenever the car is
           moving.
-        signature: "build_lidar_to_camera(lidar_calib: dict, lidar_pose: dict, cam_pose: dict, cam_calib: dict) -> np.ndarray"
+        signature: "build_lidar_to_camera(lidar_calib: dict[str, Any], lidar_pose: dict[str, Any], cam_pose: dict[str, Any], cam_calib: dict[str, Any]) -> np.ndarray"
+        helpers: [_rigid_transform, _invert_rigid, _quaternion_to_rotation]
       - id: project_to_image
         kind: function
-        status: planned
+        status: built
         purpose: Find where each LiDAR point lands in the photo and how far along the viewing direction it is
         explain: >-
           Takes the LiDAR points (one row per point), the 4x4 matrix and the camera's lens
@@ -34,10 +35,10 @@ scripts:
           are placed on the photo's pixel grid, and points that land outside the photo are
           dropped too. Out come the pixel position and the depth of every visible point. Depth
           is the distance along the camera's viewing direction, not the straight-line distance.
-        signature: "project_to_image(points: np.ndarray, lidar_to_camera: np.ndarray, intrinsic: np.ndarray, image_size: tuple[int, int], min_depth: float = 1.0) -> tuple[np.ndarray, np.ndarray]"
+        signature: "project_to_image(points: np.ndarray, T_cam_from_lidar: np.ndarray, intrinsic: np.ndarray, image_size: tuple[int, int], min_depth: float = 1.0) -> tuple[np.ndarray, np.ndarray]"
       - id: make_sparse_depth
         kind: function
-        status: planned
+        status: built
         purpose: Draw the LiDAR depths onto an empty image the size of the photo
         explain: >-
           Starts from an image of zeros the size of the photo and writes each point's depth at
