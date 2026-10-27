@@ -54,23 +54,23 @@ scripts:
     nodes:
       - id: scene_is_night
         kind: function
-        status: planned
+        status: built
         purpose: Tag a scene as day or night
         explain: >-
           Reads the one-line description nuScenes gives every scene and calls the scene night
           if it contains the word night. Every frame of the scene inherits the tag, so day and
           night results can be reported separately later.
-        signature: "scene_is_night(scene: dict) -> bool"
+        signature: "scene_is_night(scene: dict[str, Any]) -> bool"
       - id: get_split_scenes
         kind: function
-        status: planned
+        status: built
         purpose: List the scenes that belong to a split
         explain: >-
           Looks up the scene names of the chosen split. The default splits are the official
           nuScenes lists. A development-only split holds out one whole night scene and one whole
           day scene, so the day-versus-night evaluation can be tried on the small mini set.
           Splitting is always by scene and never by frame, because neighbouring frames are
-          near-copies of each other.
+          near-copies of each other. An unknown split name is an error that lists the valid ones.
         signature: "get_split_scenes(split: str) -> list[str]"
 
   - id: labels
@@ -79,18 +79,18 @@ scripts:
     nodes:
       - id: box_to_2d
         kind: function
-        status: planned
+        status: built
         purpose: Turn one 3D box into a flat box on the photo plus its distance
         explain: >-
           Takes the eight corners of a 3D box in the camera's view, flattens them onto the
           photo, and wraps the smallest rectangle around them, cut to the photo's edges. Also
           returns how far the box centre is from the camera along the viewing direction, which
-          becomes the distance the model must learn. Boxes behind the camera or outside the
-          photo are dropped.
-        signature: "box_to_2d(corners_cam: np.ndarray, intrinsic: np.ndarray, image_size: tuple[int, int]) -> tuple[np.ndarray, float] | None"
+          becomes the distance the model must learn. A box is dropped when part of it is behind
+          the camera, when it lies outside the photo, or when less than half of it is inside.
+        signature: "box_to_2d(corners_cam: np.ndarray, intrinsic: np.ndarray, image_size: tuple[int, int], min_inside_fraction: float = MIN_INSIDE_FRACTION) -> tuple[np.ndarray, float] | None"
       - id: frame_labels
         kind: function
-        status: planned
+        status: built
         purpose: Collect the usable flat boxes, classes and distances for one frame
         explain: >-
           Goes through every annotated object of the frame, keeps those of the four chosen
@@ -98,7 +98,7 @@ scripts:
           Objects are not filtered by how many LiDAR points hit them, so the camera-only
           baseline and the fusion model are scored on exactly the same objects. Out come one
           row per kept object: its box, its class and its distance.
-        signature: "frame_labels(nusc: NuScenes, sample: dict, cam_token: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]"
+        signature: "frame_labels(nusc: NuScenes, cam_token: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]"
         helpers: [_to_four_classes]
 
   - id: dataset
@@ -107,17 +107,18 @@ scripts:
     nodes:
       - id: NuScenesFrontDataset
         kind: class
-        status: planned
+        status: built
         purpose: Hold the frames of the chosen scenes and hand them out by number
         explain: >-
           Opens a nuScenes folder, picks the front-camera frames of the scenes in the chosen
-          split, and answers the question "give me frame number i". It is the only place that
-          knows where files live on disk.
-        signature: "NuScenesFrontDataset(dataroot: str, version: str, split: str)"
-        methods: [__len__]
+          split, and answers the question "give me frame number i". It refuses a split whose
+          scenes are not in the chosen data version, so training scenes from one dataset cannot
+          be mixed up with another. It is the only place that knows where files live on disk.
+        signature: "NuScenesFrontDataset(dataroot: str, version: str, split: str, camera: str = 'CAM_FRONT', lidar: str = 'LIDAR_TOP')"
+        methods: [__len__, __getstate__]
       - id: NuScenesFrontDataset.__getitem__
         kind: method
-        status: planned
+        status: built
         purpose: Assemble everything the model needs for one frame
         explain: >-
           Loads the front-camera photo, builds the sparse depth image from the LiDAR scan of
@@ -152,6 +153,6 @@ edges:
     data: names of the scenes in the chosen split
     shape: "list of scene names"
   - from: splits.scene_is_night
-    to: dataset.NuScenesFrontDataset.__getitem__
-    data: day or night tag of the frame's scene
+    to: dataset.NuScenesFrontDataset
+    data: day or night tag of each scene, kept with every frame of it
     shape: "bool"
