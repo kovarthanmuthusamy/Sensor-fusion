@@ -3,7 +3,7 @@
 Portfolio project (target: AV / robotics employers in Germany). Timebox: 1–2 weeks.
 
 ## Scope (decided 2026-10-17)
-- **Camera + LiDAR fusion for 2D detection + per-object distance** (ADR 0001): input = RGB + projected sparse LiDAR depth (4 ch, i.e. input-level/early fusion) → one CNN → 2D boxes + distance. A feature-level (mid) fusion variant is a Day 6–7 decision.
+- **Camera + LiDAR fusion for 2D detection + per-object distance** (ADR 0001): input = RGB + projected sparse LiDAR depth (4 ch, i.e. input-level/early fusion) → one CNN → 2D boxes + distance. A feature-level (mid) fusion variant was dropped on 2026-10-27 to protect the timebox: the project stays input-level fusion only.
 - **Baseline**: identical network, RGB only (3 ch). Only the input changes.
 - **Eval**: mAP and distance error, each split by {day, night}. The headline result is the night gap.
 - **Data**: nuScenes. `dataset/v1.0-mini` for development; trainval keyframes only (CAM_FRONT + LIDAR_TOP, no sweeps) for real runs. Night split = scene description contains "Night".

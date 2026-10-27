@@ -11,7 +11,7 @@ Read `docs/learning/*.md`, `docs/adr/*.md`, `docs/PROGRESS.md` and the README. O
 
 ## Format (~8 questions, one at a time, wait for each answer)
 1. **Project pitch (1):** "Walk me through your project in 2 minutes."
-2. **Design decisions (2):** "Why mid-fusion and not late fusion?" or "Why this split?" Probe the trade-offs.
+2. **Design decisions (2):** "Why input-level (early) fusion and not late fusion?" or "Why this split?" Probe the trade-offs.
 3. **Domain depth (2):** calibration and frames, sensor sync, LiDAR sparsity at range, night-time camera failure modes, metric choice.
 4. **Debugging story (1):** "Tell me about a bug you hit." Use the "Errors hit" entries and expect the STAR format.
 5. **ML engineering (1):** reproducibility, experiment tracking, fair baselines, fp16 on Volta.
