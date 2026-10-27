@@ -41,10 +41,12 @@
 
 ## Quiz
 **Q13:** In the agreement test, cars read about 1.8 m *below* their distance label. Is that a bug? What does it mean for what the model has to learn?
-**Your answer:** _open_
+**Your answer:** Is it because of the difference between the camera and LiDAR frames? But we had transformed it.
+**Feedback:** Not the cause, but your last words are the key: the frames *are* aligned, which is why 91% of boxes agree. It is not a bug. A LiDAR reads the near surface of a car (the side facing the sensor), while the label is the box centre, so cars read about half their depth extent below the label (1.8 m for cars about 4 m long). Pedestrians are thin and read about 0 m. A frame bug would look different: errors with random sign and no relation to object size, not a steady offset that grows with the object. For the model: the depth channel is not a direct readout of the label. It has to learn "label ≈ near-surface depth + about half the object's depth", which depends on class and viewing angle. This is the "centre or nearest face" choice from ADR 0005 showing up in the data.
 
 **Q14:** A teammate trains on `mini_train` and validates on the trainval `val` split. What goes wrong, and where in the code would you add a check?
-**Your answer:** _open_
+**Your answer:** Because the calibrations and projections are all done for a single split reference, and even the devkit says both are exact, but we don't know.
+**Feedback:** Partly: you sensed that each list is valid on its own and that combining them is unchecked, which is the heart of it. Calibration and projection are not involved. The problem is **leakage**: two of the eight `mini_train` scenes (`scene-0553`, `scene-0796`) are also in the trainval `val` split, so those scenes would sit on both sides. Validation would then measure memorisation of scenes the model has seen, and since neighbouring frames are near-duplicates it would look better than reality. Where to check: in the training entry point, before the first step, compare the scene names of the train and val datasets and fail if they overlap. The dataset class cannot do it, because each dataset only checks its own split against its own data version; the overlap is visible only when both are known together.
 
 Earlier questions Q7 to Q10 are also still open.
 
