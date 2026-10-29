@@ -1,3 +1,10 @@
 # RGB-only baseline. Identical network to `fusion`; only the input differs.
+# Keep every key except `name` and `in_channels` identical in fusion.yaml (a test enforces it).
 name: rgb
 in_channels: 3  # R, G, B
+backbone: resnet18
+pretrained: true      # ImageNet weights, downloaded once
+neck_channels: 64
+head_channels: 64
+prior_prob: 0.1       # initial "object here" probability per class cell
+distance_init_m: 30.0 # initial distance prediction (median of the labels)
