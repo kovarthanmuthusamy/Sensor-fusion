@@ -1,6 +1,6 @@
 # 0007 — Serving, export and demo (Day 11–13)
 
-**Status:** Proposed · **Date:** 2026-10-29
+**Status:** Accepted · **Date:** 2026-10-29
 
 ## Context
 Goal: show that the night-time fusion model can be handed to someone else and used, not only trained (CV target: ML and forward-deployed engineering roles). Chosen scope is "B": an inference service, an exported model, a latency table, a container checked in CI, and a side-by-side demo (RGB-only vs fusion, day vs night).
@@ -32,7 +32,7 @@ Serving packages (onnx, onnxruntime, fastapi, uvicorn, gradio) go in an optional
 Median and p95 over N warm runs, for PyTorch GPU, PyTorch CPU and ONNX CPU, with hardware named. Labelled "workstation numbers, not edge numbers".
 
 ## Decision
-Pending user review: the recommended choices above.
+Decisions 1-4 accepted on 2026-10-29 as recommended: (1) photo + raw LiDAR points + calibration; (2) network only in the ONNX file, decoding in our code; (3) Gradio; (4) one CPU image built and smoke-tested in CI. Decisions 5-6 (serve extra, latency reporting) stand as written.
 
 ## Consequences
 - \+ Shows the full path: data → model → export → API → container → demo, with an honest day/night model card.

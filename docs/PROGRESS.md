@@ -16,7 +16,7 @@ Timebox: 2026-10-17 → ~2026-10-31. Tick items as PRs merge.
 - [ ] Day 6–7: RGB+depth fusion model + distance head
 - [ ] Day 8–9: day/night evaluation, ablations, failure cases
 - [ ] Day 10: README, cleanup
-- [ ] Day 11–13 (scope B, [ADR 0007](adr/0007-serving-and-demo.md), proposed): ONNX export + parity test, FastAPI `/detect`, latency table, CPU Docker image checked in CI, Gradio side-by-side demo, model card. Needs trained weights from Day 6–7.
+- [ ] Day 11–13 (scope B, [ADR 0007](adr/0007-serving-and-demo.md), accepted): ONNX export + parity test, FastAPI `/detect`, latency table, CPU Docker image checked in CI, Gradio side-by-side demo, model card. Needs trained weights from Day 6–7.
 
 ## Review
 Weak topics from quizzes (feeds `/mock-interview`):
