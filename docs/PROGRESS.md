@@ -14,7 +14,7 @@ Timebox: 2026-10-17 → ~2026-10-31. Tick items as PRs merge.
 - [x] Day 3: PR `feat/nuscenes-dataset`: scene split + day/night tag, 3D→2D labels with distance, Dataset class, overlay picture
 - [ ] Day 4–5: RGB-only baseline + training loop + W&B
 - [ ] Day 6–7: RGB+depth fusion model + distance head
-- [ ] Day 8–9: day/night evaluation, ablations, failure cases
+- [ ] Day 8–9: day/night evaluation, ablations, failure cases; also report the Singapore-only day/night control with sample sizes per cell ([ADR 0008](adr/0008-location-confound-in-day-night.md))
 - [ ] Day 10: README, demo GIF, cleanup
 
 ## Review
