@@ -2,5 +2,7 @@
 name: trainval
 version: v1.0-trainval
 root: dataset/v1.0-trainval  # stored elsewhere? override with data.root=<path>
+train_split: train  # official nuScenes lists, split by scene
+val_split: val
 camera: CAM_FRONT
 lidar: LIDAR_TOP

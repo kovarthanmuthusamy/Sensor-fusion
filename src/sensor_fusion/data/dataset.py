@@ -65,6 +65,7 @@ class NuScenesFrontDataset(Dataset[dict[str, Any]]):
                 f"e.g. {sorted(missing)[:3]}: split and data version do not belong together"
             )
 
+        self._scene_names = tuple(scene["name"] for scene in scenes)
         # (sample token, is_night) in scene order, then time order: deterministic.
         self._entries: list[tuple[str, bool]] = []
         for scene in scenes:
@@ -81,6 +82,11 @@ class NuScenesFrontDataset(Dataset[dict[str, Any]]):
         state = self.__dict__.copy()
         state["_nusc"] = None
         return state
+
+    @property
+    def scene_names(self) -> tuple[str, ...]:
+        """Names of the scenes this dataset actually holds (for the train/val overlap check)."""
+        return self._scene_names
 
     @property
     def nusc(self) -> NuScenes:
