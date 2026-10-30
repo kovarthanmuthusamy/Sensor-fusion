@@ -13,7 +13,7 @@ Goal: show, as a portfolio project, that LiDAR helps camera perception at night.
 ## Decision
 Option 2, with an **RGB-only twin as the baseline**: the same architecture, schedule and seed, with only `in_channels` 3 vs 4. Evaluate mAP and distance error split by {day, night}.
 
-Terminology: stacking depth at the input is *early* fusion. *Mid* (feature-level) fusion uses a separate depth branch and fuses feature maps. That's a candidate ablation for Days 6–7 and will be decided then.
+Terminology: stacking depth at the input is *early* fusion. *Mid* (feature-level) fusion uses a separate depth branch and fuses feature maps. That was a candidate ablation for Days 6–7. **Update 2026-10-27:** dropped, to protect the timebox. The project stays input-level (early) fusion only.
 
 ## Consequences
 - \+ A controlled experiment: only the input differs, so a night-time gap is attributable to LiDAR.
