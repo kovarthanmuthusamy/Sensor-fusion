@@ -3,6 +3,7 @@
 defaults:
   - data: mini
   - model: rgb
+  - prep: default
   - _self_
 
 seed: 42

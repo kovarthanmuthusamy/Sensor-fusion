@@ -31,6 +31,18 @@ def test_every_combination_resolves(model: str, data: str) -> None:
     OmegaConf.to_container(cfg, resolve=True, throw_on_missing=True)
 
 
+def test_preparation_settings_are_shared_by_baseline_and_fusion() -> None:
+    """Fair comparison: the same shrinking, normalisation and augmentation for both variants."""
+    rgb = OmegaConf.to_container(_compose("model=rgb").prep)
+    fusion = OmegaConf.to_container(_compose("model=fusion").prep)
+    assert rgb == fusion
+
+
+def test_output_stride_divides_the_input_size_multiple() -> None:
+    # The cropped input is a multiple of 32; the grid needs it to be a multiple of the stride.
+    assert 32 % _compose().prep.output_stride == 0
+
+
 def test_baseline_and_fusion_differ_only_in_input() -> None:
     """The fair-comparison rule as a test: if someone tunes one variant only, this fails."""
     rgb = OmegaConf.to_container(_compose("model=rgb").model)
