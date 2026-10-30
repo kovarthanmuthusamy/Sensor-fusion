@@ -1,5 +1,6 @@
 # data & outputs
 dataset/
+raw_data/
 outputs/
 wandb/
 *.ckpt
