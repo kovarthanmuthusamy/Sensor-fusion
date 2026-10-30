@@ -1,0 +1,8 @@
+# Detector loss (ADR 0009). Shared by baseline and fusion.
+focal_alpha: 2.0   # focal exponent: down-weights cells that are already predicted well
+focal_beta: 4.0    # penalty reduction around object centres (CenterNet)
+weights:           # starting point; tune with the one-batch overfit and the loss curves
+  class: 1.0
+  size: 0.1        # mean of the log-width and log-height errors
+  offset: 0.1      # mean of the x and y centre-offset errors
+  distance: 0.1    # log-distance error (relative error)

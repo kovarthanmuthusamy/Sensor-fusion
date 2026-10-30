@@ -50,3 +50,12 @@ def test_baseline_and_fusion_differ_only_in_input() -> None:
     assert isinstance(rgb, dict) and isinstance(fusion, dict)
     differing = {k for k in rgb.keys() | fusion.keys() if rgb.get(k) != fusion.get(k)}
     assert differing == {"name", "in_channels"}
+
+
+def test_loss_settings_are_shared_and_have_all_weight_groups() -> None:
+    from sensor_fusion.models.losses import WEIGHT_KEYS
+
+    rgb = OmegaConf.to_container(_compose("model=rgb").loss)
+    fusion = OmegaConf.to_container(_compose("model=fusion").loss)
+    assert rgb == fusion
+    assert isinstance(rgb, dict) and set(rgb["weights"]) == set(WEIGHT_KEYS)

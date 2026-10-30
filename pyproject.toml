@@ -61,7 +61,7 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
-module = ["nuscenes.*", "pyquaternion.*"]
+module = ["nuscenes.*", "pyquaternion.*", "torchvision.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
