@@ -143,3 +143,7 @@ def test_image_size_that_disagrees_with_its_record_is_rejected(
 def test_index_out_of_range_raises_index_error(dev_val: NuScenesFrontDataset) -> None:
     with pytest.raises(IndexError):
         dev_val[len(dev_val)]
+
+
+def test_scene_names_lists_the_scenes_of_the_split(dev_val: NuScenesFrontDataset) -> None:
+    assert sorted(dev_val.scene_names) == ["scene-0103", "scene-1100"]

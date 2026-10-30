@@ -5,6 +5,7 @@ defaults:
   - model: rgb
   - prep: default
   - loss: default
+  - trainer: default
   - _self_
 
 seed: 42

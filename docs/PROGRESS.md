@@ -6,14 +6,14 @@ Timebox: 2026-10-17 → 2026-11-03 (extended on 2026-10-29). Tick items as PRs m
 - [x] Working agreement (CLAUDE.md) + Claude config (.claude/)
 - [x] Portable Python 3.11.9 + project `.venv`
 - [ ] User: create the empty GitHub repo + `wandb login`
-- [ ] nuScenes account + trainval metadata + keyframe download (CAM_FRONT, LIDAR_TOP)
+- [x] nuScenes account + trainval metadata + keyframe download (CAM_FRONT, LIDAR_TOP): 34,149 files each, verified 2026-10-30
 
 ## Build
 - [x] Day 1: repo skeleton: git, pyproject, Hydra configs, ruff/pre-commit, mypy, pytest+coverage, CI, README (PR #2)
 - [x] Day 2: PR `feat/lidar-projection`: LiDAR→camera projection + sparse depth map, tested against the devkit ([ADR 0004](adr/0004-data-pipeline-choices.md))
 - [x] Day 3: PR `feat/nuscenes-dataset`: scene split + day/night tag, 3D→2D labels with distance, Dataset class, overlay picture
-- [ ] Day 4–5: in three PRs ([ADR 0006](adr/0006-detector-input-and-targets.md)): A input preparation + target encoder + decoder (built, [log 004](learning/004-input-preparation-and-targets.md)), B network (with distance head) + loss (built, [log 005](learning/005-network-and-loss.md), [ADR 0009](adr/0009-network-and-loss.md)), C training loop + W&B + safeguards; real runs wait for trainval
-- [ ] Day 6–7: train the RGB baseline and the RGB+depth fusion model on trainval (4th-channel initialisation); the feature-level (mid) fusion variant is dropped
+- [x] Day 4–5: in three PRs ([ADR 0006](adr/0006-detector-input-and-targets.md)): A input preparation + target encoder + decoder (built, [log 004](learning/004-input-preparation-and-targets.md)), B network (with distance head) + loss (built, [log 005](learning/005-network-and-loss.md), [ADR 0009](adr/0009-network-and-loss.md)), C training loop + W&B + safeguards (built, [log 006](learning/006-training-loop.md), [ADR 0010](adr/0010-training-setup.md)); trainval is on disk, about 157 frames/s so about 3 min per epoch
+- [ ] Day 6–7: **decide the epoch count first (ADR 0010)**, then train the RGB baseline and the RGB+depth fusion model on trainval (4th-channel initialisation); the feature-level (mid) fusion variant is dropped
 - [ ] Day 8–9: day/night evaluation, ablations, failure cases
 - [ ] Day 10: README, cleanup
 - [ ] Day 11–13 (scope B, [ADR 0007](adr/0007-serving-and-demo.md), accepted): ONNX export + parity test, FastAPI `/detect`, latency table, CPU Docker image checked in CI, Gradio side-by-side demo, model card. Needs trained weights from Day 6–7.

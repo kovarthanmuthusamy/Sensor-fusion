@@ -59,3 +59,27 @@ def test_loss_settings_are_shared_and_have_all_weight_groups() -> None:
     fusion = OmegaConf.to_container(_compose("model=fusion").loss)
     assert rgb == fusion
     assert isinstance(rgb, dict) and set(rgb["weights"]) == set(WEIGHT_KEYS)
+
+
+def test_trainer_settings_are_shared_by_baseline_and_fusion() -> None:
+    """Fair comparison: same budget, learning rates, schedule and precision for both variants."""
+    rgb = OmegaConf.to_container(_compose("model=rgb").trainer)
+    fusion = OmegaConf.to_container(_compose("model=fusion").trainer)
+    assert rgb == fusion
+
+
+@pytest.mark.parametrize("data", ["mini", "trainval"])
+def test_data_configs_name_a_train_and_a_val_split(data: str) -> None:
+    from sensor_fusion.data.splits import get_split_scenes
+
+    cfg = _compose(f"data={data}")
+    train, val = get_split_scenes(cfg.data.train_split), get_split_scenes(cfg.data.val_split)
+    assert not set(train) & set(val)  # by scene, never by frame
+
+
+def test_trainer_defaults_are_safe_for_a_shared_machine() -> None:
+    trainer = _compose().trainer
+    assert trainer.require_pinned_gpu is True
+    assert trainer.amp is True
+    assert trainer.max_minutes is None  # a time cap would silently make twin runs incomparable
+    assert trainer.lr_backbone < trainer.lr_head

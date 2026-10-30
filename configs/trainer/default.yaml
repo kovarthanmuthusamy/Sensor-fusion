@@ -1,0 +1,22 @@
+# Training settings (ADR 0010). Shared by baseline and fusion: a fair comparison needs the same
+# budget, schedule and seed. Starting values; the one-batch overfit and a short mini run check them.
+epochs: 12              # fixed for both models; set after the speed check, never per model
+batch_size: 16
+num_workers: 12         # one loader process delivers ~14 frames/s (ADR 0006)
+lr_head: 5.0e-4         # neck and heads (freshly initialised)
+lr_backbone: 1.0e-4     # pretrained ResNet-18, including the first convolution
+weight_decay: 1.0e-4    # not applied to biases and normalisation parameters
+warmup_steps: 500       # linear warm-up, then cosine decay
+min_lr_fraction: 0.01   # the cosine decays to this fraction of the base rate
+grad_clip: 10.0         # global gradient-norm limit (applied after unscaling)
+amp: true               # fp16 autocast + GradScaler (Volta: no bf16); ignored on CPU
+log_every: 50           # steps between training logs
+max_minutes: null       # safety stop; a run that hits it is NOT comparable with its twin
+require_pinned_gpu: true  # fail unless CUDA_VISIBLE_DEVICES is set (shared machine)
+resume: null            # path to a last.pt to continue from
+overfit_one_batch: false  # sanity mode: memorise one batch, then stop
+overfit_steps: 150
+wandb:
+  mode: online          # falls back to offline without credentials; use disabled in tests
+  project: sensor-fusion
+  entity: null
