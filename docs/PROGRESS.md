@@ -15,7 +15,8 @@ Timebox: 2026-10-17 → 2026-11-03 (extended on 2026-10-29). Tick items as PRs m
 - [ ] Day 4–5: in three PRs ([ADR 0006](adr/0006-detector-input-and-targets.md)): A input preparation + target encoder + decoder (built, [log 004](learning/004-input-preparation-and-targets.md)), B network (with distance head) + loss (built, [log 005](learning/005-network-and-loss.md), [ADR 0009](adr/0009-network-and-loss.md)), C training loop + W&B + safeguards; real runs wait for trainval
 - [ ] Day 6–7: train the RGB baseline and the RGB+depth fusion model on trainval (4th-channel initialisation); the feature-level (mid) fusion variant is dropped
 - [ ] Day 8–9: day/night evaluation, ablations, failure cases
-- [ ] Day 10: README, demo GIF, cleanup
+- [ ] Day 10: README, cleanup
+- [ ] Day 11–13 (scope B, [ADR 0007](adr/0007-serving-and-demo.md), accepted): ONNX export + parity test, FastAPI `/detect`, latency table, CPU Docker image checked in CI, Gradio side-by-side demo, model card. Needs trained weights from Day 6–7.
 
 ## Review
 Weak topics from quizzes (feeds `/mock-interview`):
