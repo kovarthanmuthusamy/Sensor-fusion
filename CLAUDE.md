@@ -3,7 +3,7 @@
 Portfolio project (target: AV / robotics employers in Germany). Timebox: extended to 2026-11-03.
 
 ## Scope (decided 2026-10-17)
-- **Camera + LiDAR fusion for 2D detection + per-object distance** (ADR 0001): input = RGB + projected sparse LiDAR depth (4 ch, i.e. input-level/early fusion) → one CNN → 2D boxes + distance. The feature-level (mid) fusion variant was dropped on 2026-10-27 (ADR 0001); input-level fusion only.
+- **Camera + LiDAR fusion for 2D detection + per-object distance** (ADR 0001): input = RGB + projected sparse LiDAR depth (4 ch, i.e. input-level/early fusion) → one CNN → 2D boxes + distance. A feature-level (mid) fusion variant was dropped on 2026-10-27 to protect the timebox: the project stays input-level fusion only.
 - **Baseline**: identical network, RGB only (3 ch). Only the input changes.
 - **Eval**: mAP and distance error, each split by {day, night}. The headline result is the night gap.
 - **Data**: nuScenes. `dataset/v1.0-mini` for development; trainval keyframes only (CAM_FRONT + LIDAR_TOP, no sweeps) for real runs. Night split = scene description contains "Night".
@@ -52,7 +52,7 @@ The user is an ML/robotics MSc student: strong theory, building industry instinc
 1. **Roles.** Agents write the code. The user reviews every diff and makes the design decisions. Claude never makes a meaningful design decision silently. Present 2–3 options with trade-offs and a recommendation, then let the user choose.
 2. **Task flow.** One task = one feature branch = one PR, all created and opened by the user. Claude writes the PR description (what / why / how tested). Keep PRs small and reviewable.
 3. **Learning log.** Every task ends with a note in `docs/learning/NNN-<slug>.md` that follows `docs/learning/_TEMPLATE.md`. Chat replies stay short and the depth goes in the log.
-4. **Quiz after each task.** Ask 1–2 questions about the diff or concept just built (non-blocking). Prefer "why" and "what would break if" questions over recall. Record the user's answer and the correction in that task's log.
+4. **Quiz after each task.** Ask 1–2 questions about the diff or concept just built (non-blocking). Prefer "why" and "what would break if" questions over recall. Record the user's answer and the correction in that task's log. **A squash-merged branch is finished:** never push more commits to it. The user may merge at any moment, so put quiz answers in the first commit of the next task's branch, unless the user says the PR is still open (a leftover commit moves with `git cherry-pick` onto a fresh branch from the updated `main`).
 5. **Errors, by severity.**
    - Trivial (typo, import, path): fix silently, one line in the log at most.
    - Classic / instructive (coordinate frames, calibration, timestamp sync, data leakage, train/val split by scene, NaN/AMP overflow, OOM, dataloader bottleneck, eval bugs): **stop and turn it into a challenge**. Show the symptom, give a hint, and let the user diagnose first. Then fix it and write it up as a "Senior instinct" entry.

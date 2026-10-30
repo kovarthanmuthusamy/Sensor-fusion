@@ -1,3 +1,10 @@
 # Camera + LiDAR: projected sparse depth stacked as a 4th input channel.
+# Keep every key except `name` and `in_channels` identical in rgb.yaml (a test enforces it).
 name: fusion
 in_channels: 4  # R, G, B, depth
+backbone: resnet18
+pretrained: true      # ImageNet weights, downloaded once
+neck_channels: 64
+head_channels: 64
+prior_prob: 0.1       # initial "object here" probability per class cell
+distance_init_m: 30.0 # initial distance prediction (median of the labels)
