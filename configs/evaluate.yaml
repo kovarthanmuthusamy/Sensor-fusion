@@ -1,0 +1,14 @@
+# Entry config for `python -m sensor_fusion.evaluate` (ADR 0012).
+# Needs two checkpoints; the model and input preparation are read from them:
+#   python -m sensor_fusion.evaluate baseline=<rgb best.pt> fusion=<fusion best.pt>
+defaults:
+  - evaluation: default
+  - _self_
+
+baseline: ???            # path to the RGB-only checkpoint
+fusion: ???              # path to the RGB+depth checkpoint
+data_root: dataset/v1.0-trainval
+version: v1.0-trainval
+split: val               # tune on val; the test split stays sealed (ML hygiene)
+batch_size: 16
+num_workers: 12

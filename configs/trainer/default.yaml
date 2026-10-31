@@ -1,6 +1,6 @@
 # Training settings (ADR 0010). Shared by baseline and fusion: a fair comparison needs the same
 # budget, schedule and seed. Starting values; the one-batch overfit and a short mini run check them.
-epochs: 12              # fixed for both models; set after the speed check, never per model
+epochs: 24              # fixed for both models (ADR 0010); never change per model
 batch_size: 16
 num_workers: 12         # one loader process delivers ~14 frames/s (ADR 0006)
 lr_head: 5.0e-4         # neck and heads (freshly initialised)

@@ -15,7 +15,7 @@
 ## Decisions I made inside the plan (veto any)
 - AdamW with two learning rates (5e-4 heads, 1e-4 backbone), warm-up + cosine, grad clip 10, batch 16, 12 workers.
 - W&B falls back to offline mode without credentials; `last.pt`/`best.pt` written atomically; no time cap by default.
-- **Open for you:** the epoch count (default 12; I recommend 24). Both models must use the same value.
+- Epoch count: 24 for both models (chosen by you).
 
 ## Measurements
 - One-batch overfit on real mini data, GPU, fp16: loss 11.42 → 0.57 (ratio 0.05).
