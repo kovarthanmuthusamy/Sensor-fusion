@@ -141,6 +141,31 @@ class OnnxDetector:
         )
         return frame.network_input, frame.crop_top, frame.crop_left
 
+    def warm_up(self) -> dict[str, float]:
+        """Run one detection on a synthetic frame and return its timings (milliseconds).
+
+        Called at start-up: the first real request is then not the slow one (the runtime allocates
+        memory on first use), and a broken model fails here instead of in a customer's request.
+        """
+        height, width = self.image_size
+        rng = np.random.default_rng(0)
+        image = np.full((height, width, 3), 127, dtype=np.uint8)
+        points = np.column_stack(
+            [rng.uniform(5, 60, 5000), rng.uniform(-15, 15, 5000), rng.uniform(-1.5, 2.5, 5000)]
+        ).astype(np.float32)
+        # camera x = -lidar y, camera y = -lidar z, camera z = lidar x (forward)
+        calibration = Calibration(
+            np.array([[0, -1, 0, 0], [0, 0, -1, 0], [1, 0, 0, 0], [0, 0, 0, 1]], dtype=np.float64),
+            np.array([[1266.0, 0, width / 2], [0, 1266.0, height / 2], [0, 0, 1]]),
+        )
+        _, timings = self.detect(
+            image,
+            points if self.needs_lidar else None,
+            calibration if self.needs_lidar else None,
+            score_threshold=0.9,
+        )
+        return timings
+
     def detect(
         self,
         image: np.ndarray,

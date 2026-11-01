@@ -24,6 +24,8 @@ jobs:
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
       - run: pip install pre-commit
       - run: pre-commit run --all-files --show-diff-on-failure
+      - name: The Makefile parses (a dry run; make is not installed on every developer machine)
+        run: make help && make -n check docker-build load-test
 
   test:
     runs-on: ubuntu-latest
@@ -59,15 +61,19 @@ jobs:
       - run: pip install -e ".[dev,serve]"
       - name: Write a random-weight model and a sample request
         run: python scripts/make_test_model.py ci
-      - run: docker build -t sensor-fusion-serve .
+      - run: docker build --build-arg GIT_COMMIT=${{ github.sha }} -t sensor-fusion-serve .
       - name: Start the service
         run: docker run -d --name svc -p 8000:8000 -v "$PWD/ci/model:/models:ro" sensor-fusion-serve
       - name: Wait until it is healthy
         run: |
-          for i in $(seq 1 40); do curl -fsS http://localhost:8000/health && exit 0; sleep 2; done
+          for i in $(seq 1 60); do curl -fsS http://localhost:8000/ready && exit 0; sleep 2; done
           docker logs svc
           exit 1
       - run: curl -fsS http://localhost:8000/version
+      - name: Metrics are exposed
+        run: curl -fsS http://localhost:8000/metrics | grep -q http_requests_total
+      - name: The container does not run as root
+        run: test "$(docker exec svc id -u)" != "0"
       - name: Detect
         run: |
           curl -fsS -F image=@ci/image.png -F lidar=@ci/lidar.npy \

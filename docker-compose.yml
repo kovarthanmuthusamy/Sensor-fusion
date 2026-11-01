@@ -1,0 +1,36 @@
+# Run the service locally the way it would run in production: unprivileged, read-only, limited.
+#
+#   MODEL_DIR=outputs/serve/fusion_dense_head docker compose up --build
+#   curl http://localhost:8000/ready
+services:
+  detector:
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-unknown}
+    image: sensor-fusion-serve:local
+    ports:
+      - "8000:8000"
+    volumes:
+      - ${MODEL_DIR:-./outputs/serve/fusion_dense_head}:/models:ro
+    environment:
+      SF_LOG_FORMAT: json
+      SF_MAX_CONCURRENT: "2"
+      SF_MAX_QUEUE: "4"
+    read_only: true            # nothing can be written inside the container
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL                    # the service needs no Linux capabilities
+    security_opt:
+      - no-new-privileges:true
+    cpus: 4
+    mem_limit: 4g
+    restart: unless-stopped
+    stop_grace_period: 15s     # a little longer than the server's 10 s graceful shutdown
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8000/ready', timeout=4)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3

@@ -1,11 +1,15 @@
 # Night-time Camera + LiDAR Fusion
 
+[![CI](https://github.com/kovarthanmuthusamy/Sensor-fusion/actions/workflows/ci.yml/badge.svg)](https://github.com/kovarthanmuthusamy/Sensor-fusion/actions/workflows/ci.yml)
+![Python 3.11](https://img.shields.io/badge/python-3.11-blue)
+![License: MIT](https://img.shields.io/badge/license-MIT-green)
+
 **Does LiDAR help a camera detector in the dark, and by how much?** I trained a single network that finds road users and estimates how far away each one is, first from the front camera alone and then with projected LiDAR, evaluated both with proper uncertainty on nuScenes, and shipped the result as an ONNX model behind an API, a CPU container and a demo.
 
 - **Result:** LiDAR roughly **halves the distance error** (8.1% → 4.3%; at night 10.9% → 3.6%, intervals exclude zero). Box precision improves too; finding objects overall does not change, and a night detection gain is likely but not established.
 - **Honest process:** the first LiDAR model was *no better* than the camera model. I traced it to an input that was 99% empty, fixed it, and chose the final design with a pre-registered experiment ([the story](docs/learning/008-dense-depth-input.md)).
-- **Production path:** ONNX export with a parity check, FastAPI service, a CPU container with a CI build-and-smoke-test job, whole call in **59 ms** (camera) / **112 ms** (fusion) on CPU.
-- **Stack:** PyTorch, ONNX Runtime, FastAPI, Docker, Hydra, Weights & Biases, GitHub Actions, pytest (337 tests), mypy, ruff.
+- **Production path:** ONNX export with a parity check; a FastAPI service with readiness and liveness probes, Prometheus metrics, structured logs with request IDs, bounded concurrency with load shedding and input limits; a non-root CPU container with a CI build-and-smoke-test job; a runbook. A whole call takes **59 ms** (camera) / **112 ms** (fusion) on CPU.
+- **Stack:** PyTorch, ONNX Runtime, FastAPI, Docker, Hydra, Weights & Biases, GitHub Actions, pytest (372 tests), mypy, ruff.
 
 <p align="center"><img src="docs/figures/distance_error_by_range.png" width="760" alt="Distance error by true distance, day and night, camera only vs camera + LiDAR"></p>
 
@@ -40,9 +44,10 @@ curl -F image=@photo.png -F lidar=@points.npy -F "calibration=<calibration.json"
    {"class_name": "car", "score": 0.75, "box": [1096, 455, 1616, 887], "distance_m": 6.4},
    {"class_name": "car", "score": 0.74, "box": [1051, 397, 1662, 913], "distance_m": 6.2},
    {"class_name": "car", "score": 0.50, "box": [612, 406, 1092, 775], "distance_m": 8.1}],
- "timings_ms": {"prepare_ms": 85, "network_ms": 28, "decode_ms": 3, "total_ms": 117}}
+ "timings_ms": {"prepare_ms": 85, "network_ms": 28, "decode_ms": 3, "total_ms": 117},
+ "request_id": "02e5b2ee855145b5b9d3d36b49bb6f0f"}
 ```
-(Real output for the frame above; the first two boxes are one car.) `points.npy` is a float32 `(N, 3+)` array in the LiDAR frame; `calibration.json` holds `T_cam_from_lidar` (4×4, including the vehicle's motion between scan and photo) and `intrinsic` (3×3).
+(Real output for the frame above; the first two boxes are one car. `request_id` is the same ID that appears in the service's log line and the `X-Request-ID` header; it comes from a second call of the same service. Under load the service holds about 10 requests/s on CPU and answers 503 beyond its queue: [load test](docs/load_test.md).) `points.npy` is a float32 `(N, 3+)` array in the LiDAR frame; `calibration.json` holds `T_cam_from_lidar` (4×4, including the vehicle's motion between scan and photo) and `intrinsic` (3×3).
 
 **3. The container** (CPU image, model mounted from outside; the `serve-container` CI job is set up to build it and send it a real request; there is no Docker on my lab machine, so I could not run it locally):
 ```bash
@@ -72,7 +77,18 @@ The ablation credits the depth path into the network's heads with the distance g
 | **Rigorous evaluation** | own COCO-style mAP verified against pycocotools, paired bootstrap over scenes, a reporting rule fixed before the results, per-range distance error ([ADR 0011](docs/adr/0011-evaluation-reporting-rules.md), [0012](docs/adr/0012-evaluation-protocol.md)) |
 | **Debugging & scientific method** | fusion = baseline → measured the input → fix → pre-registered experiment → ablation ([log 008](docs/learning/008-dense-depth-input.md), [ADR 0013](docs/adr/0013-dense-depth-and-retrain-protocol.md)) |
 | **Deployment** | ONNX export with parity check, API with input validation, training-serving skew test, lean container, latency profiling that found a 3× thread-oversubscription slowdown ([ADR 0007](docs/adr/0007-serving-and-demo.md), [log 009](docs/learning/009-serving.md), [benchmarks](docs/benchmarks.md)) |
+| **Operating a service** | settings from the environment, JSON logs with request IDs, `/ready` vs `/health`, `/metrics`, load shedding (503 + `Retry-After`), size and point limits that act before parsing, generic 500s, non-root read-only container, load test, runbook, security notes ([ADR 0014](docs/adr/0014-production-hardening.md), [runbook](docs/RUNBOOK.md), [SECURITY.md](SECURITY.md)) |
 | **Engineering practice** | Hydra configs, seeds, W&B tracking, pre-commit, mypy, CI, an ADR for every real decision, a learning log of every error |
+
+## Operating the service
+Built to be run by someone else, not just to work on my machine ([ADR 0014](docs/adr/0014-production-hardening.md)):
+
+| | what is there | where |
+|---|---|---|
+| **Observability** | one JSON log line per request with a request ID that is also returned in `X-Request-ID`; Prometheus metrics for requests, latency, stages, load and rejections; photos and LiDAR points are never logged | `/metrics`, [runbook](docs/RUNBOOK.md) |
+| **Reliability** | `/health` (alive) separate from `/ready` (model warm); inference off the event loop; at most `SF_MAX_CONCURRENT` detections at once plus a short queue, then a fast 503 with `Retry-After`; graceful shutdown | [load test](docs/load_test.md) |
+| **Safety** | size check before the body is parsed, LiDAR point cap, image header checked before decoding, no pickle loading, generic 500s with the details only in the log, non-root container with a read-only filesystem and no capabilities | [SECURITY.md](SECURITY.md) |
+| **Process** | `make help` lists every task; CI runs lint, types, tests and builds and smoke-tests the container; Dependabot; ADR for every decision; changelog; contributing guide | [CONTRIBUTING.md](CONTRIBUTING.md), [CHANGELOG.md](CHANGELOG.md), [docs index](docs/README.md) |
 
 ## Quick start
 Requires Python 3.11; training used an NVIDIA GPU (Quadro GV100), serving and evaluation run on CPU. nuScenes needs a free registration at nuscenes.org and is not included: extract `samples/CAM_FRONT` and `samples/LIDAR_TOP` (34,149 files each) and the metadata into `dataset/v1.0-trainval/`.
