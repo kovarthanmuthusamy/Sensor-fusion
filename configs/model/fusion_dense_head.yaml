@@ -1,0 +1,14 @@
+# Camera + LiDAR, version 3: dense depth in the input AND a depth tower into the heads.
+# Input = R, G, B, thickened depth, validity mask. The tower pools local LiDAR statistics
+# (mean depth, nearest depth, density) to the output grid and gives them to both heads.
+# Same backbone and neck as the other models; only the input and the depth path differ.
+name: fusion_dense_head
+in_channels: 5  # R, G, B, depth (thickened), validity mask
+backbone: resnet18
+pretrained: true      # ImageNet weights, downloaded once
+neck_channels: 64
+head_channels: 64
+prior_prob: 0.1       # initial "object here" probability per class cell
+distance_init_m: 30.0 # initial distance prediction (median of the labels)
+depth_head: true      # a small depth tower feeds local LiDAR statistics to the heads
+depth_head_channels: 32

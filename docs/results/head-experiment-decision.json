@@ -1,0 +1,10 @@
+{
+  "head_experiment_val_distance": 0.1015554246702217,
+  "baseline_val_distance": 0.14,
+  "dense_val_distance": 0.1215,
+  "bar_vs_dense": 0.11542499999999999,
+  "bar_vs_baseline_20pct": 0.11200000000000002,
+  "chosen": "fusion_dense_head",
+  "ablation": "fusion_dense",
+  "reason": "0.1016 <= 0.1154"
+}
