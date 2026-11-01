@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sensor-fusion"
-version = "0.1.0"
+version = "0.2.0"
 description = "Camera + LiDAR fusion for night-time 2D object detection and distance estimation on nuScenes"
 readme = "README.md"
 license = "MIT"
@@ -29,6 +29,8 @@ serve = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
     "python-multipart>=0.0.9",  # FastAPI file uploads
+    "prometheus_client>=0.20",  # /metrics
+    "httpx>=0.27",  # the test client and the load test
 ]
 demo = [
     "gradio>=6",  # the side-by-side demo (sensor_fusion.serve.demo)
