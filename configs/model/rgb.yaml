@@ -8,3 +8,5 @@ neck_channels: 64
 head_channels: 64
 prior_prob: 0.1       # initial "object here" probability per class cell
 distance_init_m: 30.0 # initial distance prediction (median of the labels)
+depth_head: false      # a small depth tower feeds local LiDAR statistics to the heads
+depth_head_channels: 32

@@ -7,7 +7,7 @@ network runs in half precision; the loss is computed in float32 (see `models/los
 import json
 import logging
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -44,6 +44,8 @@ class LoopSettings:
     log_every: int
     amp: bool
     max_minutes: float | None = None
+    select_key: str | None = None  # key of the scorer's result to maximise; None = val loss
+    save_every_epoch: bool = False  # also keep `epoch-NN.pt` for every epoch
 
 
 @dataclass(frozen=True)
@@ -277,13 +279,19 @@ def fit(
     out_dir: Path,
     config: dict[str, Any],
     resume: Path | None = None,
+    scorer: Callable[[], dict[str, float]] | None = None,
 ) -> FitResult:
     """Train for `settings.epochs`, validating after each epoch.
 
-    Saves `last.pt` every epoch and `best.pt` whenever the overall validation loss improves
-    (model selection on val is fine; the test split stays sealed). `max_minutes` is a safety
+    Saves `last.pt` every epoch (and `epoch-NN.pt` if asked) and `best.pt` whenever the
+    selection value improves. By default that value is the overall validation loss; with
+    `settings.select_key` and a `scorer` it is the scorer's value for that key, to be
+    maximised (stored as its negative in the checkpoint's `best_val`, where lower is
+    better). Selecting on val is fine; the test split stays sealed. `max_minutes` is a safety
     stop: a run that hits it differs from its twin and must be reported as such.
     """
+    if (settings.select_key is None) != (scorer is None):
+        raise ValueError("select_key and scorer must be given together")
     start_epoch, step, best_val = 0, 0, float("inf")
     if resume is not None:
         state = load_checkpoint(
@@ -329,8 +337,17 @@ def fit(
             int(stats["skipped_steps"]),
         )
 
-        best_val = min(best_val, val["all"]["total"])
-        for name, keep in (("last.pt", True), ("best.pt", val["all"]["total"] <= best_val)):
+        selection = val["all"]["total"]  # lower is better
+        if scorer is not None:
+            scores = scorer()
+            run.log({f"val_score/{k}": v for k, v in scores.items()}, step=step)
+            selection = -scores[settings.select_key or ""]
+            log.info("epoch %d: %s = %.4f", epoch, settings.select_key, -selection)
+        best_val = min(best_val, selection)
+        names = [("last.pt", True), ("best.pt", selection <= best_val)]
+        if settings.save_every_epoch:
+            names.append((f"epoch-{epoch:02d}.pt", True))
+        for name, keep in names:
             if keep:
                 save_checkpoint(
                     out_dir / name,

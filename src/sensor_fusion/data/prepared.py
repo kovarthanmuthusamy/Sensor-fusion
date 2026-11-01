@@ -19,7 +19,7 @@ from sensor_fusion.data.transforms import prepare_frame
 
 class PreparedDataset(Dataset[dict[str, Any]]):
     """Item keys:
-    input: `(C, H, W)` float32, C = in_channels (3 = RGB, 4 = RGB + depth).
+    input: `(C, H, W)` float32, C = in_channels (3 = RGB, 4 = + depth, 5 = + mask).
     heatmap: `(num_classes, H/s, W/s)`, regression: `(5, H/s, W/s)`, mask: `(H/s, W/s)` float32.
     boxes `(K, 4)`, classes `(K,)`, distances `(K,)`: the labels in network-input pixels, kept for
     decoding checks and pictures. is_night: bool. sample_token: str.
@@ -35,7 +35,7 @@ class PreparedDataset(Dataset[dict[str, Any]]):
         train: bool,
     ) -> None:
         """Args:
-        base: the raw dataset. in_channels: 3 or 4. train: mirror randomly when True.
+        base: the raw dataset. in_channels: 3, 4 or 5. train: mirror randomly when True.
         prep: the `prep` config group; its values are copied out, so no config object is pickled
             into DataLoader workers.
         """
@@ -49,6 +49,8 @@ class PreparedDataset(Dataset[dict[str, Any]]):
         self._rgb_std = tuple(float(v) for v in prep["rgb_std"])
         self._stride = int(prep["output_stride"])
         self._peak_alpha = float(prep["peak_alpha"])
+        # Older checkpoints were trained without thickening and do not have this key.
+        self._depth_thicken_px = int(prep.get("depth_thicken_px", 0))
 
     def __len__(self) -> int:
         return len(self.base)
@@ -65,6 +67,7 @@ class PreparedDataset(Dataset[dict[str, Any]]):
             downscale=self._downscale,
             depth_max_m=self._depth_max_m,
             in_channels=self.in_channels,
+            depth_thicken_px=self._depth_thicken_px,
             rgb_mean=self._rgb_mean,
             rgb_std=self._rgb_std,
             flip=flip,

@@ -23,6 +23,16 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+serve = [
+    "onnx>=1.17",
+    "onnxruntime>=1.20",
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+    "python-multipart>=0.0.9",  # FastAPI file uploads
+]
+demo = [
+    "gradio>=6",  # the side-by-side demo (sensor_fusion.serve.demo)
+]
 dev = [
     "pytest>=9",
     "pytest-cov>=7",
@@ -61,7 +71,7 @@ warn_unused_ignores = true
 warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
-module = ["nuscenes.*", "pyquaternion.*", "torchvision.*"]
+module = ["nuscenes.*", "pyquaternion.*", "torchvision.*", "onnxruntime.*", "gradio.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
