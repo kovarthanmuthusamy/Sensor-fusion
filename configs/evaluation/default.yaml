@@ -1,0 +1,11 @@
+# How detections are decoded, matched and summarised (ADR 0011, 0012).
+iou_thresholds: [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95]  # first one also used for distance
+top_k: 100                    # detections kept per frame
+score_threshold: 0.05         # low on purpose: AP needs the whole precision-recall curve
+distance_score_threshold: 0.3 # distance error only for confident detections (an operating point)
+min_objects: 100              # a class gets an AP in a cell only with at least this many labels (ADR 0011)
+n_boot: 1000                  # scene-level bootstrap resamples
+seed: 0
+confidence: 0.95
+distance_edges: [0.0, 20.0, 40.0, 60.0, .inf]  # metres, for the error-by-range table
+amp: true                     # fp16 autocast for inference on a GPU
