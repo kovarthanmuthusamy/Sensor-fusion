@@ -15,7 +15,7 @@ dependencies = [
     # pip then treats these ranges as already satisfied.
     "torch>=2.14,<2.15",
     "torchvision>=0.29,<0.30",
-    "numpy>=1.26,<2",  # nuscenes-devkit requires numpy<2
+    "numpy>=1.26,<3",  # nuscenes-devkit requires numpy<2
     "nuscenes-devkit>=1.2",
     "pillow>=10.1",  # image decoding in the dataset; ImageFont.load_default(size=) in scripts
     "hydra-core>=1.3.2,<1.4",
