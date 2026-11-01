@@ -39,3 +39,13 @@ Decisions 1-4 accepted on 2026-10-29 as recommended: (1) photo + raw LiDAR point
 - \+ Shared code and a parity test protect against silent training-serving mismatch.
 - − About 3 extra days; real weights are needed for the demo, so this must follow Day 6–7 training.
 - − CPU latency of a backbone at 800×448 may be slow; we report it instead of hiding it.
+
+## Outcome (2026-11-01)
+Built as decided, with these details and deviations:
+- **Request format:** multipart upload: photo (JPEG/PNG), LiDAR as a `.npy` float array, calibration as JSON (`T_cam_from_lidar` 4×4 including vehicle motion, `intrinsic` 3×3). Only 1600×900 photos are accepted. Malformed input gets a 422 with a reason.
+- **Export:** network only, ONNX, dynamic batch. It uses PyTorch's legacy TorchScript exporter (`dynamo=False`), which is deprecated from PyTorch 2.9; migrating is future work. The depth tower's pooling window had to become a constant for the export to work. The parity check is part of the exporter; the final model differs from PyTorch by at most 9.5e-06.
+- **No drift:** serving reuses the training code for projection, preparation and decoding; a test sends a real nuScenes frame the way a customer would and requires the identical network input.
+- **Container:** a lean CPU image with only serving dependencies (a test fails if the API imports the training stack). CI builds it, starts it and sends a request; it has not been built on the lab machine, which has no Docker.
+- **Demo:** Gradio, local only (nuScenes images cannot be redistributed, so there is no hosted copy).
+- **Latency** ([benchmarks](../benchmarks.md)): a whole call on CPU takes about 59 ms (camera only) and 112 ms (fusion), p95 67 and 129 ms. Two findings: PyTorch's default of one thread per core (36) made the many small operations 3× slower and the tail 5× worse (300 vs 102 ms), so the service sets its own thread count (4); and the 7×7 max-pool of the thickening was 100 ms of the preparation, now two 1-D passes (29 ms, identical output).
+- **Not done:** TensorRT, ROS 2 and a GPU serving image (out of scope), a hosted demo.

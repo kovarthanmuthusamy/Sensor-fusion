@@ -8,6 +8,7 @@ from sensor_fusion.data.transforms import (
     boxes_to_original,
     prepare_frame,
     shrink_depth,
+    thicken_depth,
 )
 
 MEAN, STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
@@ -178,7 +179,69 @@ def test_malformed_frames_are_rejected(overrides: dict[str, np.ndarray], message
 
 def test_other_channel_counts_are_rejected() -> None:
     with pytest.raises(ValueError, match="in_channels"):
-        _prepare(in_channels=5)
+        _prepare(in_channels=6)
+
+
+# --- thickening and the validity mask ------------------------------------------------------
+
+
+def test_thickening_spreads_a_point_over_the_window_and_leaves_the_rest_empty() -> None:
+    depth = np.zeros((7, 7), dtype=np.float32)
+    depth[3, 3] = 20.0
+    thick = thicken_depth(depth, 3)
+    expected = np.zeros((7, 7), dtype=np.float32)
+    expected[2:5, 2:5] = 20.0
+    np.testing.assert_array_equal(thick, expected)
+
+
+def test_where_windows_overlap_the_nearest_depth_wins() -> None:
+    depth = np.zeros((5, 5), dtype=np.float32)
+    depth[2, 1], depth[2, 3] = 30.0, 10.0  # a far point and a near point, two pixels apart
+    thick = thicken_depth(depth, 3)
+    assert thick[2, 2] == 10.0  # in both windows: the near one, never an average (20)
+    assert thick[2, 0] == 30.0 and thick[2, 4] == 10.0
+
+
+def test_thickening_size_one_is_a_no_op_and_even_sizes_are_rejected() -> None:
+    depth = np.eye(4, dtype=np.float32)
+    np.testing.assert_array_equal(thicken_depth(depth, 1), depth)
+    with pytest.raises(ValueError, match="odd"):
+        thicken_depth(depth, 4)
+    with pytest.raises(ValueError, match=r"\(H, W\)"):
+        thicken_depth(np.zeros((2, 2, 2), dtype=np.float32), 3)
+
+
+def test_thickening_happens_before_scaling_so_values_stay_metres_over_maximum() -> None:
+    depth = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
+    depth[40, 60] = 50.0
+    data, settings = _frame(4, depth=depth)
+    channel = prepare_frame(**data, **settings, depth_thicken_px=3).network_input[3]
+    assert np.count_nonzero(channel) == 9 and channel.max() == pytest.approx(0.5)
+    plain = _prepare(in_channels=4, depth=depth).network_input[3]  # thickening is off by default
+    assert np.count_nonzero(plain) == 1
+
+
+def test_five_channels_add_a_mask_that_is_one_exactly_where_depth_is_present() -> None:
+    depth = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
+    depth[40, 60] = 50.0
+    data, settings = _frame(5, depth=depth)
+    result = prepare_frame(**data, **settings, depth_thicken_px=3).network_input
+    assert result.shape == (5, CROP_H, CROP_W)
+    np.testing.assert_array_equal(result[4], (result[3] > 0).astype(np.float32))
+    assert result[4].sum() == 9
+    four = _prepare(in_channels=4, depth=depth).network_input
+    np.testing.assert_array_equal(prepare_frame(**data, **settings).network_input[:4], four)
+
+
+def test_the_mask_is_mirrored_with_the_depth() -> None:
+    depth = np.zeros((HEIGHT, WIDTH), dtype=np.float32)
+    depth[40, 20] = 50.0
+    data, settings = _frame(5, flip=False, depth=depth)
+    plain = prepare_frame(**data, **settings, depth_thicken_px=3).network_input
+    data, settings = _frame(5, flip=True, depth=depth)
+    mirrored = prepare_frame(**data, **settings, depth_thicken_px=3).network_input
+    np.testing.assert_array_equal(mirrored[4], plain[4][:, ::-1])
+    np.testing.assert_array_equal(mirrored[3], plain[3][:, ::-1])
 
 
 def test_non_positive_depth_maximum_is_rejected() -> None:
@@ -193,3 +256,26 @@ def test_normalisation_statistics_need_three_numbers() -> None:
     settings["rgb_mean"] = (0.5, 0.5)
     with pytest.raises(ValueError, match="3 numbers"):
         prepare_frame(**data, **settings)
+
+
+def _brute_force_thicken(depth: np.ndarray, size: int) -> np.ndarray:
+    """The definition, slowly: each pixel becomes the smallest positive depth in its window."""
+    half = size // 2
+    out = np.zeros_like(depth)
+    height, width = depth.shape
+    for y in range(height):
+        for x in range(width):
+            window = depth[max(0, y - half) : y + half + 1, max(0, x - half) : x + half + 1]
+            positive = window[window > 0]
+            out[y, x] = positive.min() if len(positive) else 0.0
+    return out
+
+
+@pytest.mark.parametrize("size", [3, 5, 7])
+def test_thickening_equals_the_definition_on_random_sparse_depth(size: int) -> None:
+    """Pins the fast two-pass implementation to the plain definition, edges included."""
+    rng = np.random.default_rng(size)
+    depth = np.where(rng.random((23, 31)) < 0.08, rng.uniform(1, 80, (23, 31)), 0).astype(
+        np.float32
+    )
+    np.testing.assert_array_equal(thicken_depth(depth, size), _brute_force_thicken(depth, size))
