@@ -31,14 +31,10 @@ def _cfg(*overrides: str) -> DictConfig:
         )
 
 
-@pytest.mark.parametrize(
-    ("model", "channels"),
-    [("rgb", 3), ("fusion", 4), ("fusion_dense", 5), ("fusion_dense_head", 5)],
-)
+@pytest.mark.parametrize(("model", "channels"), [("rgb", 3), ("fusion", 4)])
 def test_model_input_channels_follow_the_config(model: str, channels: int) -> None:
     net = build_model(_cfg(f"model={model}"))
-    assert net.in_channels == channels
-    assert (net.depth_tower is not None) == (model == "fusion_dense_head")
+    assert net.conv1.in_channels == channels
 
 
 @needs_mini

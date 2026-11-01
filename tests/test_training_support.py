@@ -62,32 +62,12 @@ def test_every_parameter_is_in_exactly_one_group_and_the_rates_differ() -> None:
     assert {group["lr"] for group in optimizer.param_groups} == {5e-4, 1e-4}
 
 
-def test_photo_stem_uses_the_backbone_rate_and_depth_stem_its_own() -> None:
-    model = _model(5)
-    optimizer = build_optimizer(
-        model, lr_head=5e-4, lr_backbone=1e-4, weight_decay=1e-4, lr_depth=2e-3
-    )
-
-    def rate_of(parameter: torch.Tensor) -> float:
-        (group,) = [g for g in optimizer.param_groups if any(p is parameter for p in g["params"])]
-        return group["lr"]
-
-    assert rate_of(model.conv1.weight) == 1e-4
-    assert rate_of(model.conv1_extra.weight) == 2e-3  # type: ignore[union-attr]
-    assert rate_of(model.class_head[0].weight) == 5e-4
-    assert optimizer.param_groups[-1]["lr"] == 5e-4  # the head group stays last (train.py logs it)
-    assert optimizer.param_groups[0]["lr"] == 1e-4  # and the backbone first
-
-
-def test_depth_stem_defaults_to_the_head_rate() -> None:
-    model = _model(5)
+def test_first_convolution_including_depth_channel_uses_the_backbone_rate() -> None:
+    model = _model()
     optimizer = build_optimizer(model, lr_head=5e-4, lr_backbone=1e-4, weight_decay=1e-4)
-    (group,) = [
-        g
-        for g in optimizer.param_groups
-        if any(p is model.conv1_extra.weight for p in g["params"])  # type: ignore[union-attr]
-    ]
-    assert group["lr"] == 5e-4
+    for group in optimizer.param_groups:
+        if any(p is model.conv1.weight for p in group["params"]):
+            assert group["lr"] == 1e-4 and group["weight_decay"] == 1e-4
 
 
 def test_biases_and_norm_parameters_get_no_weight_decay() -> None:

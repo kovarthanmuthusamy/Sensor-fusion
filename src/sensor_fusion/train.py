@@ -20,8 +20,6 @@ from torch.utils.data import DataLoader
 from sensor_fusion.data.dataset import NuScenesFrontDataset
 from sensor_fusion.data.labels import CLASS_NAMES
 from sensor_fusion.data.prepared import PreparedDataset, collate_prepared
-from sensor_fusion.evaluation.inference import scene_info_from
-from sensor_fusion.evaluation.online import make_map_scorer
 from sensor_fusion.models.detector import Detector
 from sensor_fusion.training.checks import assert_scenes_disjoint, require_pinned_gpu
 from sensor_fusion.training.loop import (
@@ -51,8 +49,6 @@ def build_model(cfg: DictConfig) -> Detector:
         head_channels=cfg.model.head_channels,
         prior_prob=cfg.model.prior_prob,
         distance_init_m=cfg.model.distance_init_m,
-        depth_head=cfg.model.get("depth_head", False),  # older configs lack the key
-        depth_head_channels=cfg.model.get("depth_head_channels", 32),
     )
 
 
@@ -108,7 +104,6 @@ def run_training(cfg: DictConfig, out_dir: Path) -> None:
         lr_head=cfg.trainer.lr_head,
         lr_backbone=cfg.trainer.lr_backbone,
         weight_decay=cfg.trainer.weight_decay,
-        lr_depth=cfg.trainer.lr_depth,
     )
     scaler = make_scaler(device, cfg.trainer.amp)
     loss = LossSettings(cfg.loss.focal_alpha, cfg.loss.focal_beta, dict(cfg.loss.weights))
@@ -141,21 +136,6 @@ def run_training(cfg: DictConfig, out_dir: Path) -> None:
         warmup_steps=cfg.trainer.warmup_steps,
         min_lr_fraction=cfg.trainer.min_lr_fraction,
     )
-    scorer = None
-    if cfg.trainer.select_by != "val_loss":
-        e = cfg.evaluation
-        scorer = make_map_scorer(
-            model,
-            val_loader,
-            scene_info_from(val_loader.dataset.base.nusc),  # type: ignore[attr-defined]
-            device=device,
-            amp=cfg.trainer.amp,
-            stride=int(cfg.prep.output_stride),
-            top_k=e.top_k,
-            score_threshold=e.score_threshold,
-            distance_score_threshold=e.distance_score_threshold,
-            min_objects=e.min_objects,
-        )
     run = start_run(
         config=config,
         mode=cfg.trainer.wandb.mode,
@@ -181,14 +161,11 @@ def run_training(cfg: DictConfig, out_dir: Path) -> None:
                 log_every=cfg.trainer.log_every,
                 amp=cfg.trainer.amp,
                 max_minutes=cfg.trainer.max_minutes,
-                select_key=None if cfg.trainer.select_by == "val_loss" else cfg.trainer.select_by,
-                save_every_epoch=cfg.trainer.save_every_epoch,
             ),
             run=run,
             out_dir=out_dir,
             config=config,
             resume=Path(cfg.trainer.resume) if cfg.trainer.resume else None,
-            scorer=scorer,
         )
     finally:
         run.finish()

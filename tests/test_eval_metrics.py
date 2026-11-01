@@ -283,32 +283,6 @@ def test_ineligible_classes_are_left_out_of_the_mean_not_counted_as_zero() -> No
     assert math.isnan(none.map50)
 
 
-def test_common_class_map_averages_only_the_given_classes() -> None:
-    """Car found, pedestrian never found: the cell's own mAP is 0.5, the common one (car) is 1."""
-    frames = [
-        frame(
-            scene,
-            dets=[(BOX, 0.9, 0, 10.0)],
-            gts=[(BOX, 0, 10.0), ([20, 20, 30, 40], 1, 25.0)],
-            token=scene,
-        )
-        for scene in ("a", "b")
-    ]
-    data = build_cell_data(frames, iou_thresholds=THR, num_classes=2, distance_score_threshold=0.3)
-    m = cell_metrics(data, np.ones(2), eligible=[0, 1], common=[0])
-    assert m.map50 == pytest.approx(0.5)
-    assert m.map50_common == pytest.approx(1.0) and m.map_common == pytest.approx(1.0)
-    assert math.isnan(cell_metrics(data, np.ones(2), eligible=[0, 1]).map50_common)
-
-
-def test_common_classes_must_be_scored_in_the_cell() -> None:
-    data = build_cell_data(
-        perfect_frames(), iou_thresholds=THR, num_classes=2, distance_score_threshold=0.3
-    )
-    with pytest.raises(ValueError, match="common classes"):
-        cell_metrics(data, np.ones(2), eligible=[0], common=[0, 1])
-
-
 def test_distance_error_uses_only_matched_confident_detections() -> None:
     frames = [
         frame("a", dets=[(BOX, 0.9, 0, 12.0)], gts=[(BOX, 0, 10.0)], token="1"),  # 20% error

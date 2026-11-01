@@ -6,7 +6,6 @@ defaults:
   - prep: default
   - loss: default
   - trainer: default
-  - evaluation: default
   - _self_
 
 seed: 42

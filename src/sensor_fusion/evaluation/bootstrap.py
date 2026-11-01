@@ -13,14 +13,7 @@ import numpy as np
 
 from sensor_fusion.evaluation.metrics import CellData, Metrics, cell_metrics
 
-HEADLINE_METRICS = (
-    "map50",
-    "map",
-    "map50_common",
-    "map_common",
-    "dist_rel_median",
-    "dist_abs_median",
-)
+HEADLINE_METRICS = ("map50", "map", "dist_rel_median", "dist_abs_median")
 
 
 def metrics_to_dict(metrics: Metrics, class_names: Sequence[str]) -> dict[str, float]:
@@ -39,7 +32,6 @@ def bootstrap_samples(
     *,
     n_boot: int,
     seed: int,
-    common: Sequence[int] = (),
 ) -> dict[str, dict[str, np.ndarray]]:
     """`samples[model][metric]` is an array with one value per bootstrap resample.
 
@@ -56,7 +48,7 @@ def bootstrap_samples(
         weights = np.bincount(rng.integers(0, n_scenes, n_scenes), minlength=n_scenes).astype(float)
         for model in models:
             runs[model].append(
-                metrics_to_dict(cell_metrics(cells[model], weights, eligible, common), class_names)
+                metrics_to_dict(cell_metrics(cells[model], weights, eligible), class_names)
             )
     return {
         model: {name: np.array([run[name] for run in rows]) for name in rows[0]} if rows else {}

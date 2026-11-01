@@ -2,7 +2,6 @@
 
 import json
 import math
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -151,10 +150,9 @@ def test_the_minimum_object_rule_leaves_small_cells_without_an_ap() -> None:
     strict = EvalSettings(**{**SETTINGS.__dict__, "min_objects": 100})
     report = build_report(_two_models(), CLASS_NAMES, strict)
     cell = report["cells"]["night"]
-    assert cell["eligible_classes"] == [] and report["common_classes"] == []
+    assert cell["eligible_classes"] == []
     assert math.isnan(cell["models"]["fusion"]["point"]["map50"])
     assert "-" in to_markdown(report, CLASS_NAMES)
-    assert "eligible in every cell): none" in to_markdown(report, CLASS_NAMES)
 
 
 def test_models_must_cover_the_same_frames() -> None:
@@ -166,12 +164,7 @@ def test_models_must_cover_the_same_frames() -> None:
 
 def test_markdown_has_the_tables_and_shows_intervals_in_percent() -> None:
     text = to_markdown(build_report(_two_models(), CLASS_NAMES, SETTINGS), CLASS_NAMES)
-    for heading in (
-        "## Data behind each cell",
-        "### mAP@0.5 over the common classes (%), comparable across cells",
-        "### mAP@0.5 over each cell's own eligible classes (%), NOT comparable across cells",
-        "## Per-class AP@0.5 (%)",
-    ):
+    for heading in ("## Data behind each cell", "### mAP@0.5 (%)", "## Per-class AP@0.5 (%)"):
         assert heading in text
     assert "singapore_night" in text and "100.0 [100.0, 100.0]" in text
     assert "0-20 m" in text and "20-inf m" in text
@@ -256,54 +249,3 @@ def test_cells_with_few_scenes_are_marked_in_every_table() -> None:
     assert "† fewer than 10 scenes" in text
     assert "| singapore_night † |" in text  # two scenes only
     assert text.count("| all † |") >= 4  # data, three headline tables, per-class, distance
-
-
-def _with_pedestrian(f: FrameResult, *, found: bool) -> FrameResult:
-    """Add one pedestrian label (class 2) to a frame, and optionally a perfect detection of it."""
-    box = np.array([[20, 20, 30, 40]], dtype=np.float32)
-    detection = {
-        "det_boxes": np.concatenate([f.det_boxes, box]),
-        "det_scores": np.concatenate([f.det_scores, np.array([0.8], dtype=np.float32)]),
-        "det_classes": np.concatenate([f.det_classes, np.array([2])]),
-        "det_distances": np.concatenate([f.det_distances, np.array([25.0], dtype=np.float32)]),
-    }
-    return replace(
-        f,
-        gt_boxes=np.concatenate([f.gt_boxes, box]),
-        gt_classes=np.concatenate([f.gt_classes, np.array([2])]),
-        gt_distances=np.concatenate([f.gt_distances, np.array([25.0], dtype=np.float32)]),
-        **(detection if found else {}),
-    )
-
-
-def test_cross_cell_comparison_uses_only_the_classes_scored_in_every_cell() -> None:
-    """Pedestrians exist only by day, so night can score cars only. The cells' own mAPs would
-    average different classes; the common-class mAP averages the same one (car) everywhere."""
-    frames = _two_models()
-    for model, found in (("baseline", False), ("fusion", True)):  # baseline never finds them
-        frames[model] = [
-            f if f.is_night else _with_pedestrian(f, found=found) for f in frames[model]
-        ]
-    report = build_report(frames, CLASS_NAMES, SETTINGS)
-    assert report["common_classes"] == ["car"]
-    assert report["cells"]["day"]["eligible_classes"] == ["car", "pedestrian"]
-    assert report["cells"]["night"]["eligible_classes"] == ["car"]
-
-    for cell in report["cells"].values():
-        for model in ("baseline", "fusion"):
-            point = cell["models"][model]["point"]
-            assert point["map50_common"] == pytest.approx(
-                point["ap50_car"]
-            )  # same class everywhere
-    day = report["cells"]["day"]["models"]["baseline"]["point"]
-    night = report["cells"]["night"]["models"]["baseline"]["point"]
-    assert day["map50"] == pytest.approx(day["ap50_car"] / 2)  # own mean: (car + 0) / 2
-    assert night["map50"] == pytest.approx(night["ap50_car"])  # own mean: car only
-    assert day["map50"] < day["map50_common"]  # why the own-class means mislead across cells
-    difference = report["cells"]["day"]["difference"]["map50_common"]
-    assert difference["value"] == pytest.approx(0.0)  # cars are found equally well by both
-    assert "map50_common" in report["cells"]["day"]["models"]["fusion"]["ci"]
-
-    text = to_markdown(report, CLASS_NAMES)
-    assert "**Common classes** (eligible in every cell): car" in text
-    assert "NOT comparable across cells" in text

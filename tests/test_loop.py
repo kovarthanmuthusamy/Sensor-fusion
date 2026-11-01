@@ -12,9 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from sensor_fusion.data.prepared import collate_prepared
 from sensor_fusion.data.targets import encode_targets
-from sensor_fusion.evaluation.online import make_map_scorer
 from sensor_fusion.models.detector import Detector, Outputs
-from sensor_fusion.training.checkpoint import load_checkpoint
 from sensor_fusion.training.checks import TrainingDiverged
 from sensor_fusion.training.loop import (
     LoopSettings,
@@ -268,105 +266,3 @@ def test_fp16_autocast_and_scaler_train_without_non_finite_values(tmp_path: Path
     )
     assert step == 4 and np.isfinite(stats["total"])
     assert all(data["train/loss_scale"] > 0 for _, data in run.records if "train/total" in data)
-
-
-# --- choosing checkpoints by a score instead of the validation loss -------------------------------
-
-
-class _ScriptedScorer:
-    """Returns a prepared score per call, like a metric that peaks mid-training."""
-
-    def __init__(self, values: list[float]) -> None:
-        self.values = values
-        self.calls = 0
-
-    def __call__(self) -> dict[str, float]:
-        value = self.values[self.calls]
-        self.calls += 1
-        return {"all/map50": value, "night/map50": value / 2}
-
-
-def _fit_scored(tmp_path: Path, values: list[float], **kwargs: Any) -> tuple[Any, Recorder]:
-    model, optimizer, scheduler = _setup()
-    run = Recorder()
-    result = fit(
-        model,
-        _loader(),
-        _loader(),
-        optimizer=optimizer,
-        scheduler=scheduler,
-        scaler=make_scaler(CPU, True),
-        device=CPU,
-        loss=LOSS,
-        settings=_settings(len(values), select_key="all/map50", save_every_epoch=True, **kwargs),
-        run=run,
-        out_dir=tmp_path,
-        config={"seed": 1},
-        scorer=_ScriptedScorer(values),
-    )
-    return result, run
-
-
-def test_best_checkpoint_follows_the_score_not_the_loss(tmp_path: Path) -> None:
-    result, run = _fit_scored(tmp_path, [0.2, 0.5, 0.3])  # the score peaks at epoch 1
-    best = load_checkpoint(tmp_path / "best.pt", model=_setup()[0])
-    last = load_checkpoint(tmp_path / "last.pt", model=_setup()[0])
-    assert (best.epoch, last.epoch) == (1, 2)
-    assert result.best_val == pytest.approx(-0.5)  # stored as a loss-like value: lower is better
-    assert {"val_score/all/map50", "val_score/night/map50"} <= run.keys()
-
-
-def test_every_epoch_can_be_kept(tmp_path: Path) -> None:
-    _fit_scored(tmp_path, [0.2, 0.5, 0.3])
-    assert sorted(f.name for f in tmp_path.glob("epoch-*.pt")) == [
-        "epoch-00.pt",
-        "epoch-01.pt",
-        "epoch-02.pt",
-    ]
-
-
-def test_selection_key_and_scorer_must_come_together(tmp_path: Path) -> None:
-    model, optimizer, scheduler = _setup()
-    kwargs: dict[str, Any] = {
-        "optimizer": optimizer,
-        "scheduler": scheduler,
-        "scaler": make_scaler(CPU, True),
-        "device": CPU,
-        "loss": LOSS,
-        "run": Recorder(),
-        "out_dir": tmp_path,
-        "config": {},
-    }
-    with pytest.raises(ValueError, match="together"):
-        fit(model, _loader(), _loader(), settings=_settings(1, select_key="all/map50"), **kwargs)
-    with pytest.raises(ValueError, match="together"):
-        fit(
-            model,
-            _loader(),
-            _loader(),
-            settings=_settings(1),
-            scorer=_ScriptedScorer([0.1]),
-            **kwargs,
-        )
-
-
-def test_the_map_scorer_reports_the_cells_and_classes() -> None:
-    model = Detector(in_channels=3, num_classes=4, pretrained=False)
-    score = make_map_scorer(
-        model,
-        _loader(count=6, batch_size=3),
-        lambda token: (f"scene-{int(token.split('-')[1]) // 3}", "singapore"),
-        device=CPU,
-        amp=False,
-        stride=4,
-        top_k=50,
-        score_threshold=0.05,
-        distance_score_threshold=0.3,
-        min_objects=1,
-    )
-    result = score()
-    assert {"all/map50", "all/dist_rel_median", "all/ap50_car", "night/map50", "day/map50"} <= set(
-        result
-    )
-    assert all(0.0 <= v <= 1.0 for k, v in result.items() if k.endswith("map50"))
-    assert score().keys() == result.keys()  # callable again after the first call (model state kept)

@@ -52,10 +52,8 @@ class CellData:
 
 @dataclass(frozen=True)
 class Metrics:
-    map50: float  # mean AP@0.5 over the cell's own eligible classes
-    map: float  # mean of AP over IoU 0.50:0.05:0.95, same classes
-    map50_common: float  # mean AP@0.5 over the classes eligible in every cell
-    map_common: float
+    map50: float
+    map: float  # mean of AP over IoU 0.50:0.05:0.95
     ap50: tuple[float, ...]  # per class, nan when the class is not eligible
     ap: tuple[float, ...]
     dist_rel_median: float
@@ -164,20 +162,8 @@ def eligible_classes(data: CellData, min_objects: int) -> list[int]:
     return [c for c, n in enumerate(data.n_gt) if n >= min_objects]
 
 
-def cell_metrics(
-    data: CellData,
-    scene_weights: np.ndarray,
-    eligible: Sequence[int],
-    common: Sequence[int] = (),
-) -> Metrics:
-    """Metrics of a cell under per-scene weights (all ones = the plain numbers).
-
-    `eligible` are the classes scored in this cell (ADR 0011). `common` are the classes
-    eligible in *every* cell: their mean is the only mAP that can be compared across cells,
-    because the plain mean averages different classes in different cells.
-    """
-    if not set(common) <= set(eligible):
-        raise ValueError(f"common classes {list(common)} must be eligible, got {list(eligible)}")
+def cell_metrics(data: CellData, scene_weights: np.ndarray, eligible: Sequence[int]) -> Metrics:
+    """Metrics of a cell under per-scene weights (all ones = the plain numbers)."""
     n_classes = len(data.classes)
     ap50 = np.full(n_classes, np.nan)
     ap = np.full(n_classes, np.nan)
@@ -197,8 +183,6 @@ def cell_metrics(
     return Metrics(
         map50=float(np.nanmean(ap50)) if len(eligible) else float("nan"),
         map=float(np.nanmean(ap)) if len(eligible) else float("nan"),
-        map50_common=float(np.mean(ap50[list(common)])) if len(common) else float("nan"),
-        map_common=float(np.mean(ap[list(common)])) if len(common) else float("nan"),
         ap50=tuple(float(v) for v in ap50),
         ap=tuple(float(v) for v in ap),
         dist_rel_median=rel,
