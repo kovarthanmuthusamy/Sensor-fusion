@@ -17,7 +17,6 @@ Timebox: 2026-10-17 → 2026-11-03 (extended on 2026-10-29). Tick items as PRs m
 - [x] Day 8–9: evaluation: code ([log 007](learning/007-evaluation.md), [ADR 0012](adr/0012-evaluation-protocol.md), [ADR 0011](adr/0011-evaluation-reporting-rules.md)), three-way comparison with ablation and a second checkpoint ([docs/results](results/README.md)), failure cases ([docs/failure_cases.md](failure_cases.md))
 - [x] Day 10: README, model card ([docs/MODEL_CARD.md](MODEL_CARD.md)), cleanup
 - [x] Day 11–13 (scope B, [ADR 0007](adr/0007-serving-and-demo.md), [log 009](learning/009-serving.md)): ONNX export with parity test, FastAPI `/detect`, latency table ([docs/benchmarks.md](benchmarks.md)), CPU Docker image (built in CI only), Gradio demo
-- [x] Day 14 (production style, [ADR 0014](adr/0014-production-hardening.md), [log 011](learning/011-production-hardening.md)): settings, JSON logs, metrics, readiness, load shedding, input limits, non-root container, runbook, security/contributing/changelog, Makefile, issue/PR templates, Dependabot; load test in [docs/load_test.md](load_test.md) (about 10 req/s on CPU, 503 beyond the queue); 372 tests
 - [ ] User: commit and push the branches, open the PRs, check that the `serve-container` CI job passes (the image has never been built on the lab machine), regenerate `requirements.lock.txt` if needed, log in to W&B and `wandb sync` the offline runs
 - [ ] Optional if time: a second seed per model (to quantify seed noise at night), non-maximum suppression for duplicate boxes
 
