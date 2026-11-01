@@ -11,9 +11,24 @@
 - **Production path:** ONNX export with a parity check; a FastAPI service with readiness and liveness probes, Prometheus metrics, structured logs with request IDs, bounded concurrency with load shedding and input limits; a non-root CPU container with a CI build-and-smoke-test job; a runbook. A whole call takes **59 ms** (camera) / **112 ms** (fusion) on CPU.
 - **Stack:** PyTorch, ONNX Runtime, FastAPI, Docker, Hydra, Weights & Biases, GitHub Actions, pytest (372 tests), mypy, ruff.
 
+<p align="center"><img src="docs/figures/night_drive.gif" width="400" alt="Five seconds of a night drive in Singapore: camera-only detections above, camera + LiDAR detections below, each box with its distance in metres"></p>
+<p align="center"><sub>Five seconds of a night drive (a validation scene the model never saw): camera only above, camera + LiDAR below, distance in metres on each box. Detections with score above 0.4 are drawn.</sub></p>
+
+*In a hurry? Read **Result** above, watch the GIF, then see [Results](#results) and [How this was built](#how-this-was-built) (what I decided, what the AI agent did, how it was checked).*
+
 <p align="center"><img src="docs/figures/distance_error_by_range.png" width="760" alt="Distance error by true distance, day and night, camera only vs camera + LiDAR"></p>
 
 ## Demos
+**Watch it.** Three scenes picked for how many labelled objects they hold, not for how the models did on them (so these are not cherry-picked). Left: camera only. Right: camera + LiDAR.
+
+<p align="center"><img src="docs/figures/night_gallery.jpg" width="820" alt="Three night frames, each shown with camera-only detections on the left and camera + LiDAR detections on the right"></p>
+
+**What the fusion model is fed.** A LiDAR scan is a few thousand points; the network gets them spread into small squares plus a mask of where there is data (the fix described in [log 008](docs/learning/008-dense-depth-input.md)):
+
+<p align="center"><img src="docs/figures/lidar_input.jpg" width="430" alt="A night photo, the LiDAR scan projected onto it, and the depth image the network receives"></p>
+
+Regenerate all three with `python scripts/make_demo_media.py --model "camera only=outputs/serve/rgb" --model "camera + LiDAR=outputs/serve/fusion_dense_head"`.
+
 **1. Side-by-side demo** (Gradio, local): pick a day or night validation frame and compare the labels, the camera-only model and the fusion model, with the distance printed on each box.
 ```bash
 python -m sensor_fusion.serve.demo --model rgb=outputs/serve/rgb --model fusion=outputs/serve/fusion_dense_head
@@ -110,6 +125,19 @@ Exact development versions: [`requirements.lock.txt`](requirements.lock.txt). Ch
 - **Front camera only, 4 merged classes, 2D boxes:** not comparable with the nuScenes leaderboard.
 - **No non-maximum suppression** (duplicate boxes), and the service trusts the calibration it is given and accepts only 1600×900 photos.
 - The weights derive from nuScenes (CC BY-NC-SA 4.0): research use only.
+
+## How this was built
+I used **Claude Code**, an AI coding agent, as a fast and auditable collaborator. I decided and reviewed; the agent typed, tested and measured. The setup was designed so that speed never replaced understanding:
+
+| | what I did | what the agent did | what kept it honest |
+|---|---|---|---|
+| **Decisions** | chose the scope, the fusion design, what to cut | laid out 2–3 options with trade-offs | an ADR for each: [14 of them](docs/adr/) |
+| **Code** | reviewed every diff | wrote the pipeline, model, training, evaluation and service | 372 tests at 95% coverage; ruff, mypy and CI on every PR |
+| **Results** | decided what is claimed | ran the experiments, reported intervals | my own mAP matches `pycocotools` to three decimals; distance error recomputed by independent code |
+| **Bugs** | diagnosed first, from the symptom | gave graded hints, then fixed and logged | a `/challenge` skill and an "errors hit" table in each [learning log](docs/learning/) |
+| **Git** | all of it | none; it said when a commit was due and wrote the text | a written rule in [`CLAUDE.md`](CLAUDE.md) |
+
+The agent was configured, not just prompted: a written working agreement, topic rules (coordinate frames, ML hygiene), a formatter hook, and two custom skills (`/challenge`, `/mock-interview`). I also record where it went wrong, such as a key shown in tool output and a merge that silently reverted files, and what each mistake changed in the process. The full account: **[docs/HOW_IT_WAS_MADE.md](docs/HOW_IT_WAS_MADE.md)**.
 
 ## License
 Code: [MIT](LICENSE). nuScenes is licensed separately (CC BY-NC-SA 4.0, non-commercial).
