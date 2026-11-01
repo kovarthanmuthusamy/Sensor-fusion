@@ -1,6 +1,6 @@
 # 0010 — Training setup and safeguards (Day 4–5, PR C)
 
-**Status:** Accepted · **Date:** 2026-10-30
+**Status:** Accepted, except the epoch count (open, see Decision) · **Date:** 2026-10-30
 
 ## Context
 PR A and PR B fixed the data, the network and the loss. PR C adds the loop that trains them. Constraints: a shared pair of Volta GPUs (fp16 only, no bf16), baseline and fusion must be trained under identical settings, and every number must be traceable to code and config. Measured on 2026-10-30 on `v1.0-trainval`, GPU 0, fusion model, batch 16, 12 loader workers, fp16: **about 157 frames/s**, so one epoch of the 28,130 training frames takes about 3 minutes. The one-batch overfit on real mini data (batch of 8) took the loss from 11.42 to 0.57 (ratio 0.05).
@@ -20,7 +20,7 @@ The choices below were made by me inside the plan; all values live in `configs/t
 10. **Worker seeding:** a seeded generator fixes the shuffle order and the base seed of the workers. PyTorch seeds Python's `random` and NumPy inside each worker itself (read from the installed source). I first wrote my own worker seeding on a wrong assumption and removed it.
 
 ## Decision
-The choices above, with **24 epochs** for both models (chosen by the user on 2026-10-30; about 72 min per model at the measured speed, long enough for the cosine schedule to settle). The value is shared by baseline and fusion and must not be changed for one of them.
+The choices above, with **one open item for you: the epoch count.** The default is 12 (about 36 min per model at the measured speed). At this speed 24 epochs cost about 72 min per model and 36 epochs about 108 min. More epochs are affordable, but the value is shared by both models and must be chosen before either run starts. My recommendation is 24: long enough for the cosine schedule to settle, and both models fit in one afternoon on two GPUs.
 
 ## Consequences
 - \+ Baseline and fusion are one code path with one config group; a test enforces identical trainer settings.

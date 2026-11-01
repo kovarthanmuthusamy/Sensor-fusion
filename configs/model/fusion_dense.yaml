@@ -1,0 +1,13 @@
+# Camera + LiDAR, version 2: dense depth. Input = R, G, B, thickened depth, validity mask.
+# Same network as `rgb` and `fusion`; only the input channels differ. Keep every key except
+# `name` and `in_channels` identical in rgb.yaml and fusion.yaml (a test enforces it).
+name: fusion_dense
+in_channels: 5  # R, G, B, depth (thickened), validity mask
+backbone: resnet18
+pretrained: true      # ImageNet weights, downloaded once
+neck_channels: 64
+head_channels: 64
+prior_prob: 0.1       # initial "object here" probability per class cell
+distance_init_m: 30.0 # initial distance prediction (median of the labels)
+depth_head: false      # a small depth tower feeds local LiDAR statistics to the heads
+depth_head_channels: 32

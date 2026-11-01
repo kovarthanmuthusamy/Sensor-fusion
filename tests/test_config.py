@@ -43,13 +43,22 @@ def test_output_stride_divides_the_input_size_multiple() -> None:
     assert 32 % _compose().prep.output_stride == 0
 
 
-def test_baseline_and_fusion_differ_only_in_input() -> None:
+@pytest.mark.parametrize(
+    ("fusion_name", "allowed"),
+    [
+        ("fusion", {"name", "in_channels"}),
+        ("fusion_dense", {"name", "in_channels"}),
+        # the baseline has no depth, so only fusion models can have a depth tower
+        ("fusion_dense_head", {"name", "in_channels", "depth_head"}),
+    ],
+)
+def test_baseline_and_fusion_differ_only_in_input(fusion_name: str, allowed: set[str]) -> None:
     """The fair-comparison rule as a test: if someone tunes one variant only, this fails."""
     rgb = OmegaConf.to_container(_compose("model=rgb").model)
-    fusion = OmegaConf.to_container(_compose("model=fusion").model)
+    fusion = OmegaConf.to_container(_compose(f"model={fusion_name}").model)
     assert isinstance(rgb, dict) and isinstance(fusion, dict)
     differing = {k for k in rgb.keys() | fusion.keys() if rgb.get(k) != fusion.get(k)}
-    assert differing == {"name", "in_channels"}
+    assert differing == allowed
 
 
 def test_loss_settings_are_shared_and_have_all_weight_groups() -> None:

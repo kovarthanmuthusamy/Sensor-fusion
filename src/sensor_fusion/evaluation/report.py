@@ -15,6 +15,7 @@ from sensor_fusion.evaluation.bootstrap import (
 )
 from sensor_fusion.evaluation.matching import FrameResult
 from sensor_fusion.evaluation.metrics import (
+    CellData,
     build_cell_data,
     cell_metrics,
     distance_by_range,
@@ -64,10 +65,17 @@ def build_report(
     settings: EvalSettings,
 ) -> dict[str, Any]:
     """Results for every cell: point estimates, bootstrap intervals, and (for exactly two models)
-    the difference second minus first with its paired interval."""
+    the difference second minus first with its paired interval.
+
+    The headline mAP that can be compared across cells is taken over the *common classes*: those
+    eligible (ADR 0011) in every cell. A cell's own mAP averages whichever classes it can score, so
+    night (cars and two-wheelers) and day (all four) would otherwise not measure the same thing.
+    """
     _check_same_frames(frames)
     models = list(frames)
-    report: dict[str, Any] = {"settings": asdict(settings), "models": models, "cells": {}}
+
+    # Pass 1: the data of every non-empty cell and its eligible classes.
+    prepared: dict[str, tuple[dict[str, CellData], list[int]]] = {}
     for cell_name, belongs in CELLS.items():
         members = {m: [f for f in results if belongs(f)] for m, results in frames.items()}
         if not members[models[0]]:
@@ -81,10 +89,25 @@ def build_report(
             )
             for m in models
         }
+        prepared[cell_name] = (data, eligible_classes(data[models[0]], settings.min_objects))
+    common = sorted(set.intersection(*(set(e) for _, e in prepared.values()))) if prepared else []
+
+    report: dict[str, Any] = {
+        "settings": asdict(settings),
+        "models": models,
+        "common_classes": [class_names[c] for c in common],
+        "cells": {},
+    }
+    # Pass 2: metrics, intervals, differences.
+    for cell_name, (data, eligible) in prepared.items():
         first = data[models[0]]
-        eligible = eligible_classes(first, settings.min_objects)
         samples = bootstrap_samples(
-            data, eligible, class_names, n_boot=settings.n_boot, seed=settings.seed
+            data,
+            eligible,
+            class_names,
+            n_boot=settings.n_boot,
+            seed=settings.seed,
+            common=common,
         )
         entry: dict[str, Any] = {
             "scenes": len(first.scene_names),
@@ -96,7 +119,8 @@ def build_report(
         points: dict[str, dict[str, float]] = {}
         for m in models:
             points[m] = metrics_to_dict(
-                cell_metrics(data[m], np.ones(len(first.scene_names)), eligible), class_names
+                cell_metrics(data[m], np.ones(len(first.scene_names)), eligible, common),
+                class_names,
             )
             entry["models"][m] = {
                 "point": points[m],
@@ -155,6 +179,11 @@ def to_markdown(report: Mapping[str, Any], class_names: Sequence[str]) -> str:
         "",
         f"† fewer than {MIN_SCENES_FOR_INTERVAL} scenes: the interval is not reliable.",
         "",
+        "**Common classes** (eligible in every cell): "
+        + (", ".join(report["common_classes"]) or "none")
+        + ". Only the mAP over these is comparable between cells; a cell's own mAP averages "
+        "whichever classes it can score (see the headline tables).",
+        "",
         "## Data behind each cell",
         "",
         "| cell | scenes | frames | " + " | ".join(class_names) + " |",
@@ -167,8 +196,10 @@ def to_markdown(report: Mapping[str, Any], class_names: Sequence[str]) -> str:
     out += ["", "## Headline", ""]
     columns = list(models) + (["difference (2nd - 1st)"] if len(models) == 2 else [])
     for metric, title in (
-        ("map50", "mAP@0.5 (%)"),
-        ("map", "mAP@[0.5:0.95] (%)"),
+        ("map50_common", "mAP@0.5 over the common classes (%), comparable across cells"),
+        ("map_common", "mAP@[0.5:0.95] over the common classes (%), comparable across cells"),
+        ("map50", "mAP@0.5 over each cell's own eligible classes (%), NOT comparable across cells"),
+        ("map", "mAP@[0.5:0.95] over each cell's own eligible classes (%), NOT comparable"),
         ("dist_rel_median", "median relative distance error (%)"),
     ):
         out += [
