@@ -111,8 +111,5 @@ Exact development versions: [`requirements.lock.txt`](requirements.lock.txt). Ch
 - **No non-maximum suppression** (duplicate boxes), and the service trusts the calibration it is given and accepts only 1600×900 photos.
 - The weights derive from nuScenes (CC BY-NC-SA 4.0): research use only.
 
-## How this was built
-I made and recorded the design decisions; an AI coding agent (Claude Code) wrote and tested the code under a review-every-diff workflow ([`CLAUDE.md`](CLAUDE.md)). [`docs/adr/`](docs/adr/) holds every decision and [`docs/learning/`](docs/learning/) what was built, which errors were hit and what each taught.
-
 ## License
 Code: [MIT](LICENSE). nuScenes is licensed separately (CC BY-NC-SA 4.0, non-commercial).
