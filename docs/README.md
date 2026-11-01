@@ -6,6 +6,7 @@
 | [`../README.md`](../README.md) | what the project is, the result, and how to try it |
 | [`MODEL_CARD.md`](MODEL_CARD.md) | what the model does, its measured behaviour and its limits |
 | [`RUNBOOK.md`](RUNBOOK.md) | running and operating the service: settings, endpoints, metrics, problems and fixes |
+| [`HOW_IT_WAS_MADE.md`](HOW_IT_WAS_MADE.md) | how the project was built with an AI coding agent: roles, setup, checks, mistakes |
 | [`../SECURITY.md`](../SECURITY.md) | what the service assumes and protects against; how to report a problem |
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | how to change the project: workflow, checks, standards |
 | [`../CHANGELOG.md`](../CHANGELOG.md) | what changed in each version |
