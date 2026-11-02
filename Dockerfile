@@ -5,7 +5,7 @@
 #   docker run -p 8000:8000 -v "$PWD/outputs/serve/fusion_dense_head:/models:ro" sensor-fusion-serve
 #
 # Settings are SF_* environment variables (docs/RUNBOOK.md). Runs as a non-root user.
-FROM python:3.11-slim
+FROM python:3.15-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
