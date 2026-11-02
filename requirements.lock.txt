@@ -58,7 +58,7 @@ mypy_extensions==1.1.0
 narwhals==2.27.1
 networkx==3.6.1
 nodeenv==1.11.0
-numpy==1.26.4
+numpy==2.4.6
 nuscenes-devkit==1.2.0
 omegaconf==2.3.1
 onnx==1.23.2
